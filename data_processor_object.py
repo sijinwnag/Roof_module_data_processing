@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import pyodbc
 from sqlalchemy import create_engine
+import datetime
 # %%-
 
 
@@ -80,5 +81,77 @@ class module_data_processor:
         # define the query:
         sql_query = str(date) + 'IV'
         df = pd.read_sql('SELECT * FROM ' + str(date) + 'IV', conn)
-        
+
+        return df
+
+
+    def date_selector(self, starting_date, ending_date):
+        """
+        input: a period of time that we are interested in.
+        starting_date: year_month_date string.
+        ending_date: year_month_date string.
+
+        output: a panda dataframe of IV data of the selected date.
+        """
+
+        # convert the string into datetime format:
+        starting_year, starting_month, starting_day = starting_date.split('_')
+        starting_date = datetime.datetime(int(starting_year), int(starting_month), int(starting_day))
+        # print(starting_date)
+        ending_year, ending_month, ending_day = ending_date.split('_')
+        ending_date = datetime.datetime(int(ending_year), int(ending_month), int(ending_day))
+        # print(ending_date)
+
+        # find all the date that are between these two:
+        dates_between = np.array(pd.date_range(starting_date, ending_date, freq='D'))
+        dates_between = np.sort(dates_between)
+        # sort the dates in time order:
+
+        # print(dates_between)
+
+        date_list = []
+        for date in dates_between:
+            # convert from numpy.datetime64 to string:
+            date = str(date)
+            # print(date)
+            # delete the time part:
+            date = date.split('T')[0]
+            # print(date)
+            # collect the year, month and date:
+            year, month, day = date.split('-')
+            # we cannot have month start with 0, for example, May should be 5 not 05
+            if month[0] == '0':
+                month = month[1:]
+            # we cannot have day start with 0 as well.
+            if day[0] == '0':
+                day = day[1:]
+            date = year + '_' + month + '_' + day
+            # print(date)
+            date_list.append(date)
+
+        # now extract the IV data for the given table and concat into a single dataframe:
+        # start with the first date in the list:
+        # print(date_list[0])
+        df = self.data_reader_day(date_list[0])
+        # use a for loop to concanate the rest of hte data:
+        for date in date_list[1:]:
+            # read the df
+            date_df = self.data_reader_day(date)
+            # concanate with original one:
+            df = pd.concat([df, date_df], axis=0)
+
+        # sort the df by time.
+        # some date that use A instead of AM, so lets add m at the end if anything not ending with an m:
+        # remove all M:
+        df['xts'] = df['xts'].str.replace("M", "")
+        # add the M back: no matter wheter we had M before, this will results in everything having one M.
+        df['xts'] = df['xts'].astype(str) + 'M'
+        df['xts'] = pd.to_datetime(df['xts'].astype(str), format='%H:%M:%S %p')
+        # convert from string to datetime format.
+        df['xday'] = pd.to_datetime(df['xday'])
+        # combine the datetime column:
+        df['datetime'] = pd.to_timedelta(df['xday']) + df['xts']
+        # sort by the datetime column.
+        # df = df.sort_values(by='datetime')
+        # print(df)
         return df
