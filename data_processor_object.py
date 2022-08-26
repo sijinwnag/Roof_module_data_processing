@@ -13,7 +13,7 @@ class module_data_processor:
     """
 
 
-    def __init__(self, pathlist, starting_time, ending_time):
+    def __init__(self, path):
         """
         1. Write the path, starting date and ending date into the object.
         2. Input:
@@ -22,15 +22,63 @@ class module_data_processor:
             ending date: the end of the time to look at.
         """
 
-        self.pathlist = pathlist
-        self.starting_time = starting_time
-        self.ending_time = ending_time
+        # self.pathlist = pathlist
+        # self.starting_time = starting_time
+        # self.ending_time = ending_time
+        self.path = path
 
 
-    def dataloader(self):
+    def table_name_reader(self):
         """
-        What this function does:
-        1. Read the path list we want to get the date from.
-        2. Read the starting and ending time we are interested in.
-        3. Load the corresponding database and put it into a pd.dataframe
+        Input:
+        path: a string which is the path of the access file.
+
+        output: a list of string which contains the IV tables of each day
         """
+
+        # read the path from the object:
+        path = self.path
+
+        # create the connection
+        msa_drivers = [x for x in pyodbc.drivers() if 'ACCESS' in x.upper()]
+        # print(msa_drivers)
+        con_string = r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=' + str(path) + ';'
+        conn = pyodbc.connect(con_string)
+
+        # Create the cursor object to read how many table we got:
+        cur = conn.cursor()
+        IV_table_names = []
+        for row in cur.tables():
+            # if the table name ends with "IV" collect it into the list.
+            if row.table_name[-2:] == 'IV':
+                # print(row.table_name)
+                IV_table_names.append(row.table_name)
+        cur.close()
+
+        # output:
+        return IV_table_names
+
+
+    def data_reader_day(self, date):
+        """
+        input:
+        date: a string that correspond the day we want to look at the data.
+
+        output:
+        date_data: a panda dataframe of IV data of that table.
+        """
+
+        # read the path from the object:
+        path = self.path
+
+        # create the connection
+        msa_drivers = [x for x in pyodbc.drivers() if 'ACCESS' in x.upper()]
+        # print(msa_drivers)
+        con_string = r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=' + str(path) + ';'
+        conn = pyodbc.connect(con_string)
+
+        # define the query:
+        sql_query = str(date) + 'IV'
+        df = pd.read_sql('SELECT * FROM ' + str(date) + 'IV', conn)
+        
+        return df
