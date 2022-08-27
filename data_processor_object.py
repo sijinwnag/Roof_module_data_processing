@@ -146,12 +146,29 @@ class module_data_processor:
         df['xts'] = df['xts'].str.replace("M", "")
         # add the M back: no matter wheter we had M before, this will results in everything having one M.
         df['xts'] = df['xts'].astype(str) + 'M'
-        df['xts'] = pd.to_datetime(df['xts'].astype(str), format='%H:%M:%S %p')
+        # we also need to have zero padding for the hour to match the %I.
+        # find the ones that have only one digit for hour, we expect the xts column second element to be :
+        df['xts'] = df['xts'].str.zfill(11)
+        # convert the 00 to 12 to match with %I.
+        # df['xts'].astype(str)
+        df['xts_datetime'] = pd.to_datetime(df['xts'].astype(str), format='%H:%M:%S %p')
         # convert from string to datetime format.
-        df['xday'] = pd.to_datetime(df['xday'])
+        df['xday'] = pd.to_datetime(df['xday'].astype(str), format='%d/%m/%Y ')
+
         # combine the datetime column:
-        df['datetime'] = pd.to_timedelta(df['xday']) + df['xts']
-        # sort by the datetime column.
-        # df = df.sort_values(by='datetime')
-        # print(df)
+        df['year'] = pd.DatetimeIndex(df['xday']).year
+        df['month'] = pd.DatetimeIndex(df['xday']).month
+        df['day'] = pd.DatetimeIndex(df['xday']).day
+        df['hour'] = pd.DatetimeIndex(df['xts_datetime']).hour
+        df['miutes'] = pd.DatetimeIndex(df['xts_datetime']).minute
+        df['second'] = pd.DatetimeIndex(df['xts_datetime']).second
+        df[['time', 'PM']] = df['xts'].str.split(' ', expand=True)
+        df['hour'] = df['hour'] + 12*(df['PM'] == 'PM')
+        df['datetime'] = pd.to_datetime(df.year.astype(str) + ' ' + df.month.astype(str) + ' ' + df.day.astype(str) + ' ' + df.hour.astype(str) + ':' + df.miutes.astype(str) + ':' + df.second.astype(str), format = "%Y %m %d %H:%M:%S")
+        # delete intermedium column to produce the datetime column.
+        df = df.drop(['xts_datetime', 'year', 'month', 'day', 'hour', 'miutes', 'second', 'time', 'PM'], axis=1)
+
+        # sort the df by datetime column.
+        df = df.sort_values(by='datetime')
+
         return df
