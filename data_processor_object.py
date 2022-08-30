@@ -166,9 +166,21 @@ class module_data_processor:
         df['hour'] = df['hour'] + 12*(df['PM'] == 'PM')
         df['datetime'] = pd.to_datetime(df.year.astype(str) + ' ' + df.month.astype(str) + ' ' + df.day.astype(str) + ' ' + df.hour.astype(str) + ':' + df.miutes.astype(str) + ':' + df.second.astype(str), format = "%Y %m %d %H:%M:%S")
         # delete intermedium column to produce the datetime column.
-        df = df.drop(['xts_datetime', 'year', 'month', 'day', 'hour', 'miutes', 'second', 'time', 'PM'], axis=1)
+        df = df.drop(['xts_datetime', 'year', 'month', 'day', 'hour', 'miutes', 'second', 'time', ], axis=1)
 
         # sort the df by datetime column.
         df = df.sort_values(by='datetime')
 
+        # store df into the object.
+        self.df_days = df
+
         return df
+
+
+    def data_ploter(self, target_name):
+        """
+        This function takes the df stored in the object and plot the object with time.
+        """
+        plt.figure()
+        plt.plot(self.df_days[target_name])
+        plt.show()
