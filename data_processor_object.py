@@ -184,3 +184,12 @@ class module_data_processor:
         plt.figure()
         plt.plot(self.df_days[target_name])
         plt.show()
+
+
+    def zero_remover(self):
+        """
+        This function takes the df_days and remove the zero outliers
+        """
+
+        #
+        df = self.df_days
