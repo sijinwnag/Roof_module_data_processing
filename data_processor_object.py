@@ -87,7 +87,7 @@ class module_data_processor:
         return df
 
 
-    def date_selector(self, starting_date, ending_date):
+    def date_selector(self):
         """
         input: a period of time that we are interested in.
         starting_date: year_month_date string.
@@ -95,7 +95,8 @@ class module_data_processor:
 
         output: a panda dataframe of IV data of the selected date.
         """
-
+        starting_date = self.starting_day
+        ending_date = self.ending_day
         # convert the string into datetime format:
         starting_year, starting_month, starting_day = starting_date.split('_')
         starting_date = datetime.datetime(int(starting_year), int(starting_month), int(starting_day))
@@ -184,7 +185,11 @@ class module_data_processor:
         This function takes the df stored in the object and plot the object with time.
         """
         plt.figure()
-        plt.plot(self.df_days[target_name])
+        plt.plot(self.df_nonzero['datetime'], self.df_nonzero[target_name])
+        plt.xlabel('Time')
+        plt.ylabel(target_name)
+        plt.title(str(target_name) + ' between '+ str(self.starting_day).replace('_', '-') + ' and ' + str(self.ending_day).replace('_', '-'))
+        plt.gcf().autofmt_xdate()
         plt.show()
 
 
@@ -192,6 +197,17 @@ class module_data_processor:
         """
         This function takes the df_days and remove the zero outliers
         """
-
         # run the code to extract the dates.
         df = self.date_selector()
+        # use a new column to identify whether to delete it by multiplying everything together
+        product = df['Voc'] * df['Isc'] * df['Vm'] * df['Im'] * df['Pm'] * df['FF']
+        df['nonzero'] = (product != 0)
+        # print(df)
+        # filter out the zero data.
+        df_nonzero = df[df['nonzero']==True]
+        # # delete the extra label column.
+        # df_nonzero = df_nonzero.drop('whether_keep')
+        # store the data in the object
+        self.df_nonzero = df_nonzero
+
+        # return df_nonzero
