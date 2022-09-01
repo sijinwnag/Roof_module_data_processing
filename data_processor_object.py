@@ -14,7 +14,7 @@ class module_data_processor:
     """
 
 
-    def __init__(self, path):
+    def __init__(self, path, starting_day, ending_day):
         """
         1. Write the path, starting date and ending date into the object.
         2. Input:
@@ -27,6 +27,8 @@ class module_data_processor:
         # self.starting_time = starting_time
         # self.ending_time = ending_time
         self.path = path
+        self.starting_day = starting_day
+        self.ending_day = ending_day
 
 
     def table_name_reader(self):
@@ -191,5 +193,5 @@ class module_data_processor:
         This function takes the df_days and remove the zero outliers
         """
 
-        #
-        df = self.df_days
+        # run the code to extract the dates.
+        df = self.date_selector()
