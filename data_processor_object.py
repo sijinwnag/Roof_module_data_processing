@@ -30,6 +30,27 @@ class module_data_processor:
         self.starting_day = starting_day
         self.ending_day = ending_day
 
+        # convert the input to datetime.
+        year_st, month_st, day_st = starting_day.split('_')
+        year_ed, month_ed, day_ed = ending_day.split('_')
+        hour_st, min_st, sec_st = starting_time.split(':')
+        sec_st, AMPM_st = sec_st.split(' ')
+        # convert the hour if it is PM:
+        hour_st = str(int(hour_st) * AMPM_st[0] == 'P')
+        hour_ed, min_ed, sec_ed = ending_time.split(':')
+        sec_ed, AMPM_ed = sec_ed.split(' ')
+        hour_ed = str(int(hour_ed) * AMPM_ed[0] == 'P')
+        # starting_datetime = starting_day + ' ' + starting_time
+        # ending_datetime = ending_day + ' ' + ending_time
+
+        # generate the datetime string back:
+        starting_datetime = year_st + '_' + month_st + '_' + day_st + ' ' + hour_st + ':' + min_st + ':' + sec_st
+        ending_datetime = year_ed + '_' + month_ed + '_' + day_ed + ' ' + hour_ed + ':' + min_ed + ':' + sec_ed
+
+        self.starting_datetime = datetime.datetime.strptime(starting_datetime, "%Y_%m_%d %H:%M:%S")
+        self.ending_datetime = datetime.datetime.strptime(ending_datetime, "%Y_%m_%d %H:%M:%S")
+        print(self.starting_datetime)
+        print(self.ending_datetime)
 
     def table_name_reader(self):
         """
@@ -154,7 +175,7 @@ class module_data_processor:
         df['xts'] = df['xts'].str.zfill(11)
         # convert the 00 to 12 to match with %I.
         # df['xts'].astype(str)
-        df['xts_datetime'] = pd.to_datetime(df['xts'].astype(str), format='%H:%M:%S %p')
+        df['xts_datetime'] = pd.to_datetime(df['xts'].astype(str), format='%H:%M:%S %p') # this column is an intermedium column, the pm and am are not converted correctly, but it will be corrected in later lines.
         # convert from string to datetime format.
         df['xday'] = pd.to_datetime(df['xday'].astype(str), format='%d/%m/%Y ')
 
