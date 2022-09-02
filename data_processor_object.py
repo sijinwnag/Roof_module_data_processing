@@ -14,7 +14,7 @@ class module_data_processor:
     """
 
 
-    def __init__(self, path, starting_day, ending_day):
+    def __init__(self, path, starting_day, ending_day, starting_time, ending_time):
         """
         1. Write the path, starting date and ending date into the object.
         2. Input:
