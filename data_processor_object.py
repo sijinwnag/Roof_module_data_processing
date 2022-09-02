@@ -36,10 +36,10 @@ class module_data_processor:
         hour_st, min_st, sec_st = starting_time.split(':')
         sec_st, AMPM_st = sec_st.split(' ')
         # convert the hour if it is PM:
-        hour_st = str(int(hour_st) * AMPM_st[0] == 'P')
+        hour_st = str(int(hour_st) + 12 * int(AMPM_st[0] == 'P'))
         hour_ed, min_ed, sec_ed = ending_time.split(':')
         sec_ed, AMPM_ed = sec_ed.split(' ')
-        hour_ed = str(int(hour_ed) * AMPM_ed[0] == 'P')
+        hour_ed = str(int(hour_ed) + 12 * int(AMPM_ed[0] == 'P'))
         # starting_datetime = starting_day + ' ' + starting_time
         # ending_datetime = ending_day + ' ' + ending_time
 
@@ -49,8 +49,8 @@ class module_data_processor:
 
         self.starting_datetime = datetime.datetime.strptime(starting_datetime, "%Y_%m_%d %H:%M:%S")
         self.ending_datetime = datetime.datetime.strptime(ending_datetime, "%Y_%m_%d %H:%M:%S")
-        print(self.starting_datetime)
-        print(self.ending_datetime)
+        # print(self.starting_datetime)
+        # print(self.ending_datetime)
 
     def table_name_reader(self):
         """
@@ -194,6 +194,9 @@ class module_data_processor:
 
         # sort the df by datetime column.
         df = df.sort_values(by='datetime')
+
+        # filter out the data through datetime column:
+        df = df[np.array(df['datetime']>self.starting_datetime) * np.array(df['datetime']<self.ending_datetime)]
 
         # store df into the object.
         self.df_days = df
