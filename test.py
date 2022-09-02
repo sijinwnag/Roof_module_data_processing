@@ -205,7 +205,7 @@ resiopt=residuallist[optind]
 
 
 # Start plotting:
-plt.figure('fitting')
+plt.figure(num='fitting', facecolor='white')
 
 for taum, T, Ndop, doptype, nxc in zip(taulist, Tlist,Doplist,Typelist, nxclist):
 
@@ -217,6 +217,7 @@ plt.title('Residual={:.5e}'.format(resiopt))
 plt.loglog()
 plt.xlabel(r'Excess carrier density [$\rm cm^{-3}$]')
 plt.ylabel(r'Lifetime [s]')
+plt.savefig('fitting curve' + '.png')
 plt.show()
 
 
@@ -231,7 +232,7 @@ extent = (Et2list[0], Et2list[-1], Et1list[0], Et1list[-1])
 
 
 # last plotting:
-plt.figure('Resudual')
+plt.figure(num='Resudual', facecolor='white')
 im1 = plt.imshow(residuallistr,extent =extent, aspect='equal', origin = 'lower',norm=colors.LogNorm())
 plt.colorbar(im1)
 plt.plot(Etlist[optind][1],Etlist[optind][0],'bo')
@@ -250,5 +251,38 @@ np.save('k2listr.npy',k2listr)
 np.save('residuallist.npy',residuallist)
 np.save('residuallistr.npy',residuallistr)
 np.save('Etlist.npy',Etlist)
+plt.savefig('residual map' + '.png')
 plt.show()
+# %%-
+
+
+# %%-- email reminder
+def email_reminder():
+
+    # who to send to. and the content of the email.
+    # email title
+    subject='data generation done'
+    # email body
+    body= 'data generation is done' + ' through the file ' + str(os.getcwd())
+    # which email address to sent to:
+    to='z5183876@ad.unsw.edu.au'
+
+    # email address to be sent from: (you can use this address to send email from)
+    user = "sijinwang@yahoo.com"
+    password = 'gdfkzhzhaokjivek'
+
+    msg = EmailMessage()
+    msg.set_content(body)
+    msg['subject'] = subject
+    msg['to'] = to
+    msg['from'] = user
+
+    server = smtplib.SMTP("smtp.mail.yahoo.com", 587)
+    server.starttls()
+    server.login(user, password)
+    server.send_message(msg)
+
+    server.quit()
+
+email_reminder()
 # %%-
