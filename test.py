@@ -30,8 +30,8 @@ nxclist=[]
 nxcspace = np.logspace(13,17,50)
 taulist=[]
 
-Et1list=np.linspace(-0.55,0.55,110)
-Et2list=np.linspace(-0.55,0.55,110)
+Et1list=np.linspace(-0.55,0.55,50)
+Et2list=np.linspace(-0.55,0.55,50)
 #Et1list=[0]
 #Et2list=[0]
 
