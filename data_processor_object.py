@@ -52,6 +52,7 @@ class module_data_processor:
         # print(self.starting_datetime)
         # print(self.ending_datetime)
 
+
     def table_name_reader(self):
         """
         Input:
@@ -204,12 +205,12 @@ class module_data_processor:
         return df
 
 
-    def data_ploter(self, target_name):
+    def data_ploter_with_time(self, target_name):
         """
         This function takes the df stored in the object and plot the object with time.
         """
         plt.figure()
-        plt.plot(self.df_nonzero['datetime'], self.df_nonzero[target_name])
+        plt.plot(self.df_nonzero_module['datetime'], self.df_nonzero_module[target_name])
         plt.xlabel('Time')
         plt.ylabel(target_name)
         plt.title(str(target_name) + ' between '+ str(self.starting_day).replace('_', '-') + ' and ' + str(self.ending_day).replace('_', '-'))
@@ -235,3 +236,40 @@ class module_data_processor:
         self.df_nonzero = df_nonzero
 
         # return df_nonzero
+
+
+    def module_selector(self, module_number=1):
+        """
+        This process is after the step of zero remover:
+        it takes the pd dataframe after removal of zeros.
+        and filter the dataset to have only a specific module.
+        """
+        # read the df from object.
+        df_nonzero = self.df_nonzero
+        # apply the filtering:
+        df_nonzero_module = df_nonzero[df_nonzero['cno'] == module_number]
+        # store the filtered data into the object:
+        self.df_nonzero_module = df_nonzero_module
+        # checking printing:
+        # print(df_nonzero_module.head())
+
+
+    def data_parameter_plot(self, x_name, y_name):
+        '''
+        This function takes the value from the selected module and plot inter parameter.
+        '''
+        # read the data from the object.
+        df = self.df_nonzero_module
+        # select the x axis data;
+        x_data = df[x_name]
+        # select the y axis data:
+        y_data = df[y_name]
+
+        # plot the data:
+        plt.figure()
+        plt.scatter(x_data, y_data)
+        plt.xlabel(x_name)
+        plt.ylabel(y_name)
+        plt.title(str(y_name) + ' vs ' + str(x_name) + ' between '+ str(self.starting_day).replace('_', '-') + ' and ' + str(self.ending_day).replace('_', '-'))
+        # plt.gcf().autofmt_xdate()
+        plt.show()
