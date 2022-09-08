@@ -52,6 +52,17 @@ class module_data_processor:
         # print(self.starting_datetime)
         # print(self.ending_datetime)
 
+        # define a dictionary that tranlate the column name from raw data to more understandable names:
+        self.column_name_dict = {'AH':'Absolute humidity %',
+        'AT':'Absolute temperature (C)',
+        'MT':'Module temperature (C)',
+        'Voc': 'Voc(V)',
+        'Isc':'Isc (A)',
+        'Vm':'Maximum power voltage (V)',
+        'Im': 'Maximum power current (A)',
+        'Pm': 'Maximum power',
+        'FF':'Fill factor (%)'}
+
 
     def table_name_reader(self):
         """
@@ -205,14 +216,20 @@ class module_data_processor:
         return df
 
 
-    def data_ploter_with_time(self, target_name):
+    def data_ploter_with_time(self, target_name, module_number=4):
         """
         This function takes the df stored in the object and plot the object with time.
         """
+        # read the df through module selector:
+        df = self.module_selector(module_number=module_number, return_value=True)
+
+        # plot
         plt.figure()
-        plt.plot(self.df_nonzero_module['datetime'], self.df_nonzero_module[target_name])
+        plt.plot(df['datetime'], df[target_name])
         plt.xlabel('Time')
         plt.ylabel(target_name)
+        # look up the column name through dictionary:
+        target_name = self.column_name_dict[target_name]
         plt.title(str(target_name) + ' between '+ str(self.starting_day).replace('_', '-') + ' and ' + str(self.ending_day).replace('_', '-'))
         plt.gcf().autofmt_xdate()
         plt.show()
@@ -238,7 +255,7 @@ class module_data_processor:
         # return df_nonzero
 
 
-    def module_selector(self, module_number=1):
+    def module_selector(self, module_number=1, return_value=False):
         """
         This process is after the step of zero remover:
         it takes the pd dataframe after removal of zeros.
@@ -249,21 +266,29 @@ class module_data_processor:
         # apply the filtering:
         df_nonzero_module = df_nonzero[df_nonzero['cno'] == module_number]
         # store the filtered data into the object:
-        self.df_nonzero_module = df_nonzero_module
+        # self.df_nonzero_module = df_nonzero_module
         # checking printing:
         # print(df_nonzero_module.head())
+        # if return_value==True:
+        return df_nonzero_module
 
 
-    def data_parameter_plot(self, x_name, y_name):
+    def data_parameter_plot(self, x_name, y_name, module_number=2):
         '''
         This function takes the value from the selected module and plot inter parameter.
         '''
         # read the data from the object.
-        df = self.df_nonzero_module
+        df = self.df_nonzero
+        # filter out the other module number
+        df = self.module_selector(module_number=module_number, return_value=True)
         # select the x axis data;
         x_data = df[x_name]
         # select the y axis data:
         y_data = df[y_name]
+
+        # look up the name to plot from object dictionary:
+        x_name = self.column_name_dict[x_name]
+        y_name = self.column_name_dict[y_name]
 
         # plot the data:
         plt.figure()
@@ -272,4 +297,51 @@ class module_data_processor:
         plt.ylabel(y_name)
         plt.title(str(y_name) + ' vs ' + str(x_name) + ' between '+ str(self.starting_day).replace('_', '-') + ' and ' + str(self.ending_day).replace('_', '-'))
         # plt.gcf().autofmt_xdate()
+        plt.show()
+
+
+    def data_ploter_with_time_multimodule(self, target_name, module_num_list=[1, 2, 3, 4, 5, 6]):
+        '''
+        This function will plot the parmeter with time but plot multiple module value on the same graph.
+        '''
+        plt.figure()
+        for module in module_num_list:
+            # select the pd frame for this module:
+            pd_module = self.module_selector(module_number=module, return_value=True)
+            # select the x and y column names:
+            y = pd_module[target_name]
+            x = pd_module['datetime']
+            plt.plot(x, y, label='Module ' + str(module))
+        # look up the name from dictionary:
+        target_name = self.column_name_dict[target_name]
+        plt.xlabel('Time')
+        plt.ylabel(target_name)
+        plt.title(str(target_name) + ' between '+ str(self.starting_day).replace('_', '-') + ' and ' + str(self.ending_day).replace('_', '-'))
+        plt.gcf().autofmt_xdate()
+        plt.legend()
+        plt.show()
+
+
+    def data_parameter_plot_multimodule(self, x_name, y_name, module_num_list=[1, 2, 3, 4, 5, 6]):
+        '''
+        This function will plot the parmeter with parameter but plot multiple module value on the same graph.
+        '''
+        plt.figure()
+        for module in module_num_list:
+            # select the pd frame for this module:
+            pd_module = self.module_selector(module_number=module, return_value=True)
+            # select the x and y column names:
+            # select the x axis data;
+            x = pd_module[x_name]
+            # select the y axis data:
+            y = pd_module[y_name]
+            plt.scatter(x, y, label='Module ' + str(module))
+        # look up the name from dictionary:
+        x_name = self.column_name_dict[x_name]
+        y_name = self.column_name_dict[y_name]
+        plt.xlabel(x_name)
+        plt.ylabel(y_name)
+        plt.title(str(y_name) + ' vs ' + str(x_name) + ' between '+ str(self.starting_day).replace('_', '-') + ' and ' + str(self.ending_day).replace('_', '-'))
+        plt.gcf().autofmt_xdate()
+        plt.legend()
         plt.show()

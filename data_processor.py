@@ -1,5 +1,7 @@
 # %%-- todo:
 '''
+- use a dictionary to name each column. (done)
+- use being able to compare results for each module.
 - to be able to plot parameter vs parameter for the dataset.
 - to be able to plot data for more than one access file.
 '''
@@ -25,7 +27,9 @@ data1 = module_data_processor(path = r'C:\Users\sijin wang\Desktop\research\RA\M
 # data1.data_reader_day(date='2022_5_31')
 # data1.date_selector()
 data1.zero_remover()
-data1.module_selector(module_number = module_number)
+# data1.module_selector(module_number = module_number)
 data1.data_ploter_with_time(target_name = 'Isc')
 data1.data_parameter_plot(x_name='MT', y_name='Voc')
+data1.data_ploter_with_time_multimodule(target_name = 'Voc', module_num_list=[1, 2, 5])
+data1.data_parameter_plot_multimodule(x_name='AT', y_name='MT', module_num_list=[1, 2, 3, 4, 5, 6])
 # %%-
