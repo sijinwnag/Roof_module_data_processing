@@ -54,14 +54,17 @@ class module_data_processor:
 
         # define a dictionary that tranlate the column name from raw data to more understandable names:
         self.column_name_dict = {'AH':'Absolute humidity %',
-        'AT':'Absolute temperature (C)',
-        'MT':'Module temperature (C)',
+        'AT':'Absolute temperature (\u00B0C)',
+        'MT':'Module temperature (\u00B0C)',
         'Voc': 'Voc(V)',
         'Isc':'Isc (A)',
         'Vm':'Maximum power voltage (V)',
         'Im': 'Maximum power current (A)',
         'Pm': 'Maximum power',
         'FF':'Fill factor (%)'}
+
+        # define a list of colour correspond to each module: blue, green red, magenta, and yellow.
+        self.colour_list = ['b', 'g', 'r', 'c', 'm', 'y']
 
 
     def table_name_reader(self):
@@ -230,7 +233,7 @@ class module_data_processor:
         plt.ylabel(target_name)
         # look up the column name through dictionary:
         target_name = self.column_name_dict[target_name]
-        plt.title(str(target_name) + ' between '+ str(self.starting_day).replace('_', '-') + ' and ' + str(self.ending_day).replace('_', '-'))
+        plt.title(' Between '+  str(self.starting_datetime) + ' and ' + str(self.starting_datetime))
         plt.gcf().autofmt_xdate()
         plt.show()
 
@@ -295,7 +298,7 @@ class module_data_processor:
         plt.scatter(x_data, y_data)
         plt.xlabel(x_name)
         plt.ylabel(y_name)
-        plt.title(str(y_name) + ' vs ' + str(x_name) + ' between '+ str(self.starting_day).replace('_', '-') + ' and ' + str(self.ending_day).replace('_', '-'))
+        plt.title(' Between '+  str(self.starting_datetime) + ' and ' + str(self.starting_datetime))
         # plt.gcf().autofmt_xdate()
         plt.show()
 
@@ -311,12 +314,12 @@ class module_data_processor:
             # select the x and y column names:
             y = pd_module[target_name]
             x = pd_module['datetime']
-            plt.plot(x, y, label='Module ' + str(module))
+            plt.plot(x, y, label='Module ' + str(module), c=self.colour_list[module - 1])
         # look up the name from dictionary:
         target_name = self.column_name_dict[target_name]
         plt.xlabel('Time')
         plt.ylabel(target_name)
-        plt.title(str(target_name) + ' between '+ str(self.starting_day).replace('_', '-') + ' and ' + str(self.ending_day).replace('_', '-'))
+        plt.title(' Between '+  str(self.starting_datetime) + ' and ' + str(self.starting_datetime))
         plt.gcf().autofmt_xdate()
         plt.legend()
         plt.show()
@@ -335,13 +338,13 @@ class module_data_processor:
             x = pd_module[x_name]
             # select the y axis data:
             y = pd_module[y_name]
-            plt.scatter(x, y, label='Module ' + str(module))
+            plt.scatter(x, y, label='Module ' + str(module), s=1, c=self.colour_list[module - 1])
         # look up the name from dictionary:
         x_name = self.column_name_dict[x_name]
         y_name = self.column_name_dict[y_name]
         plt.xlabel(x_name)
         plt.ylabel(y_name)
-        plt.title(str(y_name) + ' vs ' + str(x_name) + ' between '+ str(self.starting_day).replace('_', '-') + ' and ' + str(self.ending_day).replace('_', '-'))
+        plt.title(' Between '+  str(self.starting_datetime) + ' and ' + str(self.starting_datetime))
         plt.gcf().autofmt_xdate()
         plt.legend()
         plt.show()
