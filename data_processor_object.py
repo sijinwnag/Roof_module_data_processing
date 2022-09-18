@@ -26,7 +26,15 @@ class module_data_processor:
         # self.pathlist = pathlist
         # self.starting_time = starting_time
         # self.ending_time = ending_time
-        self.path = path
+        # the path is a list of string correspond to the path of each files.
+        self.path = [
+        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-01-25_22-02-28.accdb',
+        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-03-01_22-03-31.accdb',
+        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-04-01_22-05-02.accdb',
+        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-05-02_22-05-31.accdb',
+        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-05-31_22-07-01.accdb',
+        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-07-01_22-07-31.accdb',
+        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-08-01-22_09-01.accdb']
         self.starting_day = starting_day
         self.ending_day = ending_day
 
@@ -67,7 +75,7 @@ class module_data_processor:
         self.colour_list = ['b', 'g', 'r', 'c', 'm', 'y']
 
 
-    def table_name_reader(self):
+    def table_name_reader(self, path):
         """
         Input:
         path: a string which is the path of the access file.
@@ -76,7 +84,7 @@ class module_data_processor:
         """
 
         # read the path from the object:
-        path = self.path
+        # path = self.path
 
         # create the connection
         msa_drivers = [x for x in pyodbc.drivers() if 'ACCESS' in x.upper()]
@@ -98,7 +106,21 @@ class module_data_processor:
         return IV_table_names
 
 
-    def data_reader_day(self, date):
+    def file_date_reader(self):
+        '''
+        input: the files
+        output: a list of string of date corresponding to each file. (a list of list)
+        '''
+        files_date = []
+        for path in self.path:
+            # read the dates:
+            dates = self.table_name_reader(path=path)
+            files_date.append(dates)
+        # store the result into the object.
+        self.list_of_date = files_date
+
+
+    def data_reader_day(self, date, path):
         """
         input:
         date: a string that correspond the day we want to look at the data.
@@ -108,7 +130,7 @@ class module_data_processor:
         """
 
         # read the path from the object:
-        path = self.path
+        # path = self.path
 
         # create the connection
         msa_drivers = [x for x in pyodbc.drivers() if 'ACCESS' in x.upper()]
@@ -148,7 +170,7 @@ class module_data_processor:
 
         # print(dates_between)
 
-        date_list = []
+        date_list = [] # a list of date to include, each date correspond to one table.
         for date in dates_between:
             # convert from numpy.datetime64 to string:
             date = str(date)
@@ -169,8 +191,7 @@ class module_data_processor:
             date_list.append(date)
 
         # now extract the IV data for the given table and concat into a single dataframe:
-        # start with the first date in the list:
-        # print(date_list[0])
+        # start with the first date in the list, you will need to select the correct path, the path that contains the table name str(date) + 'IV'
         df = self.data_reader_day(date_list[0])
         # use a for loop to concanate the rest of hte data:
         for date in date_list[1:]:
@@ -219,23 +240,23 @@ class module_data_processor:
         return df
 
 
-    def data_ploter_with_time(self, target_name, module_number=4):
-        """
-        This function takes the df stored in the object and plot the object with time.
-        """
-        # read the df through module selector:
-        df = self.module_selector(module_number=module_number, return_value=True)
-
-        # plot
-        plt.figure()
-        plt.plot(df['datetime'], df[target_name])
-        plt.xlabel('Time')
-        plt.ylabel(target_name)
-        # look up the column name through dictionary:
-        target_name = self.column_name_dict[target_name]
-        plt.title(' Between '+  str(self.starting_datetime) + ' and ' + str(self.starting_datetime))
-        plt.gcf().autofmt_xdate()
-        plt.show()
+    # def data_ploter_with_time(self, target_name, module_number=4):
+    #     """
+    #     This function takes the df stored in the object and plot the object with time.
+    #     """
+    #     # read the df through module selector:
+    #     df = self.module_selector(module_number=module_number, return_value=True)
+    #
+    #     # plot
+    #     plt.figure()
+    #     plt.plot(df['datetime'], df[target_name])
+    #     plt.xlabel('Time')
+    #     plt.ylabel(target_name)
+    #     # look up the column name through dictionary:
+    #     target_name = self.column_name_dict[target_name]
+    #     plt.title(' Between '+  str(self.starting_datetime) + ' and ' + str(self.starting_datetime))
+    #     plt.gcf().autofmt_xdate()
+    #     plt.show()
 
 
     def zero_remover(self):
@@ -258,7 +279,7 @@ class module_data_processor:
         # return df_nonzero
 
 
-    def module_selector(self, module_number=1, return_value=False):
+    def module_selector(self, module_num_list = [1, 2, 3]):
         """
         This process is after the step of zero remover:
         it takes the pd dataframe after removal of zeros.
@@ -266,14 +287,23 @@ class module_data_processor:
         """
         # read the df from object.
         df_nonzero = self.df_nonzero
+        pd_list = []
         # apply the filtering:
-        df_nonzero_module = df_nonzero[df_nonzero['cno'] == module_number]
+        keep_data_list = np.zeros(np.shape(df_nonzero['cno'] == module_num_list[0]))
+        for number in module_num_list:
+            keep_data = np.array(df_nonzero['cno'] == number)
+            # print(keep_data)
+            # print(keep_data_list)
+            keep_data_list = np.any([keep_data_list, keep_data], axis=0)
+            pd_list.append(df_nonzero[keep_data])
+
+        # print(np.sum(keep_data_list))
+        df_nonzero_module = df_nonzero[keep_data_list]
         # store the filtered data into the object:
-        # self.df_nonzero_module = df_nonzero_module
-        # checking printing:
-        # print(df_nonzero_module.head())
-        # if return_value==True:
-        return df_nonzero_module
+        self.df_nonzero = df_nonzero_module
+
+        # split the df_nonzero into a list of pd dataframe for each module:
+        self.module_df_list = pd_list
 
 
     def data_parameter_plot(self, x_name, y_name, module_number=2):
@@ -303,48 +333,97 @@ class module_data_processor:
         plt.show()
 
 
-    def data_ploter_with_time_multimodule(self, target_name, module_num_list=[1, 2, 3, 4, 5, 6]):
+    def data_ploter_with_time_multimodule(self, target_name):
         '''
         This function will plot the parmeter with time but plot multiple module value on the same graph.
         '''
         plt.figure()
-        for module in module_num_list:
+        counter = 0
+        for module in self.module_df_sampled:
+            counter = counter + 1
             # select the pd frame for this module:
-            pd_module = self.module_selector(module_number=module, return_value=True)
+            pd_module = module
             # select the x and y column names:
             y = pd_module[target_name]
             x = pd_module['datetime']
-            plt.plot(x, y, label='Module ' + str(module), c=self.colour_list[module - 1])
+            plt.plot(x, y, label='Module ' + str(counter), c=self.colour_list[counter - 1])
         # look up the name from dictionary:
         target_name = self.column_name_dict[target_name]
         plt.xlabel('Time')
         plt.ylabel(target_name)
-        plt.title(' Between '+  str(self.starting_datetime) + ' and ' + str(self.starting_datetime))
+        plt.title(' Between '+  str(self.starting_datetime) + ' and ' + str(self.ending_datetime))
         plt.gcf().autofmt_xdate()
         plt.legend()
         plt.show()
 
 
-    def data_parameter_plot_multimodule(self, x_name, y_name, module_num_list=[1, 2, 3, 4, 5, 6]):
+    def data_parameter_plot_multimodule(self, x_name, y_name):
         '''
         This function will plot the parmeter with parameter but plot multiple module value on the same graph.
         '''
+
         plt.figure()
-        for module in module_num_list:
+        counter = 0
+        for module in self.module_df_sampled:
+            counter = counter + 1
             # select the pd frame for this module:
-            pd_module = self.module_selector(module_number=module, return_value=True)
+            pd_module = module
             # select the x and y column names:
-            # select the x axis data;
             x = pd_module[x_name]
             # select the y axis data:
             y = pd_module[y_name]
-            plt.scatter(x, y, label='Module ' + str(module), s=1, c=self.colour_list[module - 1])
+            plt.scatter(x, y, label='Module ' + str(counter), s=10, c=self.colour_list[counter - 1])
         # look up the name from dictionary:
         x_name = self.column_name_dict[x_name]
         y_name = self.column_name_dict[y_name]
         plt.xlabel(x_name)
         plt.ylabel(y_name)
-        plt.title(' Between '+  str(self.starting_datetime) + ' and ' + str(self.starting_datetime))
+        plt.title(' Between '+  str(self.starting_datetime) + ' and ' + str(self.ending_datetime))
         plt.gcf().autofmt_xdate()
         plt.legend()
         plt.show()
+
+
+    def data_resampler(self, df, sample_length='hour'):
+        '''
+        This function takes the pd dataframe after removing all zeros, then resample the data based on the requirement: minute, hour, day, month.
+        '''
+        df_nonzero=df
+        if sample_length == 'hour':
+            # we will resample the data based on the hour colume:
+            # print(df_nonzero)
+            # convert the datetime column to hour:
+            df_datetime = df_nonzero['datetime']
+            df_nonzero = df_nonzero.resample('60min', on='datetime').mean()
+            df_nonzero['datetime'] = df_nonzero.index
+            df_nonzero = df_nonzero.fillna(0)
+        elif sample_length == 'day':
+            df_datetime = df_nonzero['datetime']
+            df_nonzero = df_nonzero.resample('D', on='datetime').mean()
+            df_nonzero['datetime'] = df_nonzero.index
+            df_nonzero = df_nonzero.fillna(0)
+        elif sample_length == 'month':
+            df_datetime = df_nonzero['datetime']
+            df_nonzero = df_nonzero.resample('M', on='datetime').mean()
+            df_nonzero['datetime'] = df_nonzero.index
+            df_nonzero = df_nonzero.fillna(0)
+
+        # output the result:
+        return df_nonzero
+
+
+    def multi_module_resampler(self, sample_length='hour'):
+        '''
+        This function uses the data_sampler function in this object to resample the df for each module.
+        '''
+        # load a list of pd dataframe from object for each module:
+        module_df_list = self.module_df_list
+        # create an empty list to collect the resampled df.
+        module_df_sampled = []
+        for module_df in module_df_list:
+            # resample it:
+            module_sampled = self.data_resampler(df=module_df, sample_length=sample_length)
+            module_df_sampled.append(module_sampled)
+            # print(module_sampled)
+        # save the result to the object:
+        self.module_df_sampled = module_df_sampled
