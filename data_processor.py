@@ -15,18 +15,20 @@ import matplotlib.pyplot as plt
 
 # %%-- Define the object:
 starting_day = '2022_5_31'
-ending_day = '2022_7_1'
+ending_day = '2022_6_3'
 starting_time = '8:00:00 AM'
 ending_time = '9:00:32 PM'
-data1 = module_data_processor(path = r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\raw_data\2022-05-31_2022-07-01.accdb', starting_day = starting_day, ending_day = ending_day, starting_time = starting_time, ending_time = ending_time)
+data1 = module_data_processor(path = r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\2022-05-31_2022-07-01.accdb', starting_day = starting_day, ending_day = ending_day, starting_time = starting_time, ending_time = ending_time)
 # %%-
 
 
 # %%--
-# create a list of
+# create a list of dates
 data1.file_date_reader()
 data1.list_of_date
 # %%-
+
+# data1.file_path_locator('2022_3_11IV')
 
 
 # %%--

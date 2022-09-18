@@ -27,14 +27,15 @@ class module_data_processor:
         # self.starting_time = starting_time
         # self.ending_time = ending_time
         # the path is a list of string correspond to the path of each files.
-        self.path = [
-        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-01-25_22-02-28.accdb',
-        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-03-01_22-03-31.accdb',
-        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-04-01_22-05-02.accdb',
-        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-05-02_22-05-31.accdb',
-        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-05-31_22-07-01.accdb',
-        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-07-01_22-07-31.accdb',
-        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-08-01-22_09-01.accdb']
+        # self.path = [
+        # r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-01-25_22-02-28.accdb',
+        # r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-03-01_22-03-31.accdb',
+        # r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-04-01_22-05-02.accdb',
+        # r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-05-02_22-05-31.accdb',
+        # r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-05-31_22-07-01.accdb',
+        # r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-07-01_22-07-31.accdb',
+        # r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-08-01-22_09-01.accdb']
+        self.path = path
         self.starting_day = starting_day
         self.ending_day = ending_day
 
@@ -75,7 +76,7 @@ class module_data_processor:
         self.colour_list = ['b', 'g', 'r', 'c', 'm', 'y']
 
 
-    def table_name_reader(self, path):
+    def table_name_reader(self):
         """
         Input:
         path: a string which is the path of the access file.
@@ -84,7 +85,7 @@ class module_data_processor:
         """
 
         # read the path from the object:
-        # path = self.path
+        path = self.path
 
         # create the connection
         msa_drivers = [x for x in pyodbc.drivers() if 'ACCESS' in x.upper()]
@@ -120,7 +121,7 @@ class module_data_processor:
         self.list_of_date = files_date
 
 
-    def data_reader_day(self, date, path):
+    def data_reader_day(self, date):
         """
         input:
         date: a string that correspond the day we want to look at the data.
@@ -130,7 +131,7 @@ class module_data_processor:
         """
 
         # read the path from the object:
-        # path = self.path
+        path = self.path
 
         # create the connection
         msa_drivers = [x for x in pyodbc.drivers() if 'ACCESS' in x.upper()]
@@ -257,6 +258,32 @@ class module_data_processor:
     #     plt.title(' Between '+  str(self.starting_datetime) + ' and ' + str(self.starting_datetime))
     #     plt.gcf().autofmt_xdate()
     #     plt.show()
+
+
+    def file_path_locator(self, date):
+        '''
+        input: a string of date.
+        output: the path of the file that contains this day
+        '''
+        # add the name IV after, so it matches with the table name.
+        date = str(date) + 'IV'
+        # look through the list of dates for each file:
+        counter = 0
+        for files in self.list_of_date:
+            # check whether it contains this day.
+            print(files)
+            if date in files:
+                # if the file have this date, break the loop
+                print(true)
+                break
+            else:
+                # otherwise update the counter
+                counter = counter + 1
+        # now we should get the counter that is the index of the file.
+        print(counter)
+        path = self.path[counter]
+        # output the result:
+        return path
 
 
     def zero_remover(self):
@@ -407,6 +434,8 @@ class module_data_processor:
             df_nonzero = df_nonzero.resample('M', on='datetime').mean()
             df_nonzero['datetime'] = df_nonzero.index
             df_nonzero = df_nonzero.fillna(0)
+        else:
+            df_nonzero=df
 
         # output the result:
         return df_nonzero
