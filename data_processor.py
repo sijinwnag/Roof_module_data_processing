@@ -1,6 +1,7 @@
 # %%-- todo:
 '''
 -in the date_selector(self) function of the object: when extracting the date table from the file, create a function that automatically choose the correct path that contains this date.
+-in the data_reader_day session, before reading we need to decide which path to use.
 '''
 # %%-
 
@@ -25,7 +26,7 @@ data1 = module_data_processor(path = r'C:\Users\sijin wang\Desktop\research\RA\M
 # %%--
 # create a list of dates
 data1.file_date_reader()
-data1.list_of_date
+data1.list_of_date # this is a list of list of dates for each file for each day.
 # %%-
 
 # data1.file_path_locator('2022_3_11IV')

@@ -27,15 +27,15 @@ class module_data_processor:
         # self.starting_time = starting_time
         # self.ending_time = ending_time
         # the path is a list of string correspond to the path of each files.
-        # self.path = [
-        # r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-01-25_22-02-28.accdb',
-        # r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-03-01_22-03-31.accdb',
-        # r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-04-01_22-05-02.accdb',
-        # r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-05-02_22-05-31.accdb',
-        # r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-05-31_22-07-01.accdb',
-        # r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-07-01_22-07-31.accdb',
-        # r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-08-01-22_09-01.accdb']
-        self.path = path
+        self.path = [
+        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-01-25_22-02-28.accdb',
+        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-03-01_22-03-31.accdb',
+        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-04-01_22-05-02.accdb',
+        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-05-02_22-05-31.accdb',
+        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-05-31_22-07-01.accdb',
+        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-07-01_22-07-31.accdb',
+        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-08-01-22_09-01.accdb']
+        # self.path = path
         self.starting_day = starting_day
         self.ending_day = ending_day
 
@@ -76,16 +76,16 @@ class module_data_processor:
         self.colour_list = ['b', 'g', 'r', 'c', 'm', 'y']
 
 
-    def table_name_reader(self):
+    def table_name_reader(self, path):
         """
         Input:
-        path: a string which is the path of the access file.
+        path: a string which is the paths of the access file.
 
         output: a list of string which contains the IV tables of each day
         """
 
         # read the path from the object:
-        path = self.path
+        # path = self.path
 
         # create the connection
         msa_drivers = [x for x in pyodbc.drivers() if 'ACCESS' in x.upper()]
@@ -97,8 +97,8 @@ class module_data_processor:
         cur = conn.cursor()
         IV_table_names = []
         for row in cur.tables():
-            # if the table name ends with "IV" collect it into the list.
-            if row.table_name[-2:] == 'IV':
+            # if the table name ends with "IV" and start with a digit, collect it into the list.
+            if row.table_name[-2:] == 'IV' and row.table_name[0].isdigit():
                 # print(row.table_name)
                 IV_table_names.append(row.table_name)
         cur.close()
@@ -131,7 +131,7 @@ class module_data_processor:
         """
 
         # read the path from the object:
-        path = self.path
+        # path = self.path
 
         # create the connection
         msa_drivers = [x for x in pyodbc.drivers() if 'ACCESS' in x.upper()]
@@ -239,25 +239,6 @@ class module_data_processor:
         self.df_days = df
 
         return df
-
-
-    # def data_ploter_with_time(self, target_name, module_number=4):
-    #     """
-    #     This function takes the df stored in the object and plot the object with time.
-    #     """
-    #     # read the df through module selector:
-    #     df = self.module_selector(module_number=module_number, return_value=True)
-    #
-    #     # plot
-    #     plt.figure()
-    #     plt.plot(df['datetime'], df[target_name])
-    #     plt.xlabel('Time')
-    #     plt.ylabel(target_name)
-    #     # look up the column name through dictionary:
-    #     target_name = self.column_name_dict[target_name]
-    #     plt.title(' Between '+  str(self.starting_datetime) + ' and ' + str(self.starting_datetime))
-    #     plt.gcf().autofmt_xdate()
-    #     plt.show()
 
 
     def file_path_locator(self, date):
