@@ -132,6 +132,7 @@ class module_data_processor:
 
         # read the path from the object:
         # path = self.path
+        path = self.path_selector(date)
 
         # create the connection
         msa_drivers = [x for x in pyodbc.drivers() if 'ACCESS' in x.upper()]
@@ -437,3 +438,32 @@ class module_data_processor:
             # print(module_sampled)
         # save the result to the object:
         self.module_df_sampled = module_df_sampled
+
+
+    def path_selector(self, table_name):
+        '''
+        input: the name of the table.
+
+        output: the path of the output that contains this table.
+        '''
+        # create a list of list of table name correspond to each path.
+        # self.file_date_reader()
+        # load the result from the object:
+        dates_list_of_list = self.list_of_date
+        # check which list contain the given table name:
+        table_name = table_name + 'IV'
+        counter = 0
+        for list in dates_list_of_list:
+            # print(list)
+            # print(table_name)
+            if table_name in list:
+                print(table_name)
+                break
+            # udpate the counter
+            else:
+                counter = counter + 1
+        # print(counter)
+        # now counter should be the index of hte path containing the correct date.
+        path = self.path[counter]
+
+        return path

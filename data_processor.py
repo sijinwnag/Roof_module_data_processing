@@ -1,7 +1,6 @@
 # %%-- todo:
 '''
--in the date_selector(self) function of the object: when extracting the date table from the file, create a function that automatically choose the correct path that contains this date.
--in the data_reader_day session, before reading we need to decide which path to use.
+
 '''
 # %%-
 
@@ -16,17 +15,17 @@ import matplotlib.pyplot as plt
 
 # %%-- Define the object:
 starting_day = '2022_5_31'
-ending_day = '2022_6_3'
+ending_day = '2022_9_1'
 starting_time = '8:00:00 AM'
 ending_time = '9:00:32 PM'
 data1 = module_data_processor(path = r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\2022-05-31_2022-07-01.accdb', starting_day = starting_day, ending_day = ending_day, starting_time = starting_time, ending_time = ending_time)
 # %%-
 
 
-# %%--
+# %%-- create a list of list of dates in object.
 # create a list of dates
 data1.file_date_reader()
-data1.list_of_date # this is a list of list of dates for each file for each day.
+# data1.list_of_date # this is a list of list of dates for each file for each day.
 # %%-
 
 # data1.file_path_locator('2022_3_11IV')
