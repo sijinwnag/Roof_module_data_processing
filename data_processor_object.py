@@ -63,7 +63,7 @@ class module_data_processor:
 
         # define a dictionary that tranlate the column name from raw data to more understandable names:
         self.column_name_dict = {'AH':'Absolute humidity %',
-        'AT':'Absolute temperature (\u00B0C)',
+        'AT':'Ambient temperature (\u00B0C)',
         'MT':'Module temperature (\u00B0C)',
         'Voc': 'Voc(V)',
         'Isc':'Isc (A)',
@@ -190,7 +190,24 @@ class module_data_processor:
                 day = day[1:]
             date = year + '_' + month + '_' + day
             # print(date)
+            date = date + 'IV'
             date_list.append(date)
+
+        # filter out the dates that are not contained in the files.
+        # load the available dates from the object.
+        available_dates = np.concatenate(self.list_of_date).flat
+        # convert into numpy array to avoid using for loop:
+        date_list = np.array(date_list)
+        # check each element:
+        availability = np.isin(date_list, available_dates)
+        # print(availability)
+        # print(date_list)
+        # print(available_dates)
+        index = np.argwhere(availability)
+        # keep the available dates only:
+        date_list = date_list[index]
+        # convert back to list:
+        # date_list = date_list.tolist()
 
         # now extract the IV data for the given table and concat into a single dataframe:
         # start with the first date in the list, you will need to select the correct path, the path that contains the table name str(date) + 'IV'
@@ -451,11 +468,11 @@ class module_data_processor:
         # load the result from the object:
         dates_list_of_list = self.list_of_date
         # check which list contain the given table name:
-        table_name = table_name + 'IV'
+        table_name = str(table_name)
         counter = 0
         for list in dates_list_of_list:
-            # print(list)
-            # print(table_name)
+            print(list)
+            print(table_name)
             if table_name in list:
                 print(table_name)
                 break
@@ -464,6 +481,7 @@ class module_data_processor:
                 counter = counter + 1
         # print(counter)
         # now counter should be the index of hte path containing the correct date.
+        # if counter <= len(self.path):
         path = self.path[counter]
 
         return path

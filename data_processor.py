@@ -1,6 +1,6 @@
 # %%-- todo:
 '''
-
+figure out why line 476 of the code does not recognize the string in the list.
 '''
 # %%-
 
@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 
 
 # %%-- Define the object:
-starting_day = '2022_5_31'
+starting_day = '2022_1_25'
 ending_day = '2022_9_1'
 starting_time = '8:00:00 AM'
 ending_time = '9:00:32 PM'
