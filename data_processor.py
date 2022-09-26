@@ -1,6 +1,6 @@
 # %%-- todo:
 '''
-figure out why line 476 of the code does not recognize the string in the list.
+Fix the problem
 '''
 # %%-
 

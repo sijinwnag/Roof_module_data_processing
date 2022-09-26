@@ -141,8 +141,8 @@ class module_data_processor:
         conn = pyodbc.connect(con_string)
 
         # define the query:
-        sql_query = str(date) + 'IV'
-        df = pd.read_sql('SELECT * FROM ' + str(date) + 'IV', conn)
+        sql_query = str(date) # + 'IV'
+        df = pd.read_sql('SELECT * FROM ' + str(date), conn)
 
         return df
 
@@ -193,6 +193,7 @@ class module_data_processor:
             date = date + 'IV'
             date_list.append(date)
 
+        # print(date_list)
         # filter out the dates that are not contained in the files.
         # load the available dates from the object.
         available_dates = np.concatenate(self.list_of_date).flat
@@ -205,9 +206,10 @@ class module_data_processor:
         # print(available_dates)
         index = np.argwhere(availability)
         # keep the available dates only:
-        date_list = date_list[index]
+        date_list = date_list[index].flatten()
         # convert back to list:
-        # date_list = date_list.tolist()
+        date_list = date_list.tolist()
+        # print(date_list)
 
         # now extract the IV data for the given table and concat into a single dataframe:
         # start with the first date in the list, you will need to select the correct path, the path that contains the table name str(date) + 'IV'
@@ -471,10 +473,11 @@ class module_data_processor:
         table_name = str(table_name)
         counter = 0
         for list in dates_list_of_list:
-            print(list)
-            print(table_name)
+            # print(list)
+            # print(table_name)
             if table_name in list:
                 print(table_name)
+                # print(counter)
                 break
             # udpate the counter
             else:
