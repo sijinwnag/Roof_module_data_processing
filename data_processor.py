@@ -1,6 +1,5 @@
 # %%-- todo:
 '''
-Fix the problem
 '''
 # %%-
 
@@ -48,7 +47,7 @@ data1.multi_module_resampler(sample_length='day')
 
 
 # %%--plot with time:
-data1.data_ploter_with_time_multimodule(target_name='Isc')
+data1.data_ploter_with_time_multimodule(target_name='Voc')
 
 # %%-
 

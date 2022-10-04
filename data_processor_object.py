@@ -222,6 +222,8 @@ class module_data_processor:
             df = pd.concat([df, date_df], axis=0)
 
         # sort the df by time.
+        # remove all empty rows: it must start with a number.
+        df = df.dropna()
         # some date that use A instead of AM, so lets add m at the end if anything not ending with an m:
         # remove all M:
         df['xts'] = df['xts'].str.replace("M", "")
@@ -232,6 +234,7 @@ class module_data_processor:
         df['xts'] = df['xts'].str.zfill(11)
         # convert the 00 to 12 to match with %I.
         # df['xts'].astype(str)
+        df = df[df['xts']!='05:04:б9 AM']
         df['xts_datetime'] = pd.to_datetime(df['xts'].astype(str), format='%H:%M:%S %p') # this column is an intermedium column, the pm and am are not converted correctly, but it will be corrected in later lines.
         # convert from string to datetime format.
         df['xday'] = pd.to_datetime(df['xday'].astype(str), format='%d/%m/%Y ')
@@ -371,6 +374,8 @@ class module_data_processor:
             counter = counter + 1
             # select the pd frame for this module:
             pd_module = module
+            # remove the outliers
+            pd_module = self.subset_by_iqr(df=pd_module, column=target_name)
             # select the x and y column names:
             y = pd_module[target_name]
             x = pd_module['datetime']
@@ -396,6 +401,9 @@ class module_data_processor:
             counter = counter + 1
             # select the pd frame for this module:
             pd_module = module
+            # remove outliers
+            pd_module = self.subset_by_iqr(df=pd_module, column=x_name)
+            pd_module = self.subset_by_iqr(df=pd_module, column=y_name)
             # select the x and y column names:
             x = pd_module[x_name]
             # select the y axis data:
@@ -488,3 +496,25 @@ class module_data_processor:
         path = self.path[counter]
 
         return path
+
+
+    def subset_by_iqr(self, df, column, whisker_width=1.5):
+        """Remove outliers from a dataframe by column, including optional
+           whiskers, removing rows for which the column value are
+           less than Q1-1.5IQR or greater than Q3+1.5IQR.
+        Args:
+            df (`:obj:pd.DataFrame`): A pandas dataframe to subset
+            column (str): Name of the column to calculate the subset from.
+            whisker_width (float): Optional, loosen the IQR filter by a
+                                   factor of `whisker_width` * IQR.
+        Returns:
+            (`:obj:pd.DataFrame`): Filtered dataframe
+        """
+        # Calculate Q1, Q2 and IQR
+        q1 = df[column].quantile(0.25)
+        q3 = df[column].quantile(0.75)
+        iqr = q3 - q1
+        # Apply filter with respect to IQR, including optional whiskers
+        filter = (df[column] >= q1 - whisker_width*iqr) & (df[column] <= q3 + whisker_width*iqr)
+        # print('filtered')
+        return df.loc[filter]
