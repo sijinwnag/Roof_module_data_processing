@@ -27,6 +27,7 @@ class module_data_processor:
         # self.starting_time = starting_time
         # self.ending_time = ending_time
         # the path is a list of string correspond to the path of each files.
+        # data for 2022.
         self.path = [
         r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-01-25_22-02-28.accdb',
         r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-03-01_22-03-31.accdb',
@@ -34,7 +35,26 @@ class module_data_processor:
         r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-05-02_22-05-31.accdb',
         r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-05-31_22-07-01.accdb',
         r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-07-01_22-07-31.accdb',
-        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-08-01-22_09-01.accdb']
+        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-08-01-22_09-01.accdb', # the above are 2022 data.
+        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2021\SP1053 (2021.8.10-2021.9.15).accdb',
+        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2021\SP1053 (2021.11.2 - 2022.1.3).accdb',
+        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2021\SP1053(2021.4.1-2021.5.4).accdb',
+        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2021\SP1053(2021.5.4-2021.6.16).accdb',
+        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2021\SP1053(2021.6.16-2021.8.9).accdb', # the above are 2021 data.
+        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2020\02 June 2020 - 06 July 2020\SP1053.accdb',
+        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2020\03 Sep 2020 - 07 Oct 2020\SP1053.accdb',
+        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2020\04 March 2020 - 05 Apr 2020\SP1053.accdb',
+        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2020\05 May 2020 - 02 June 2020\SP1053.accdb',
+        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2020\06 Apr 2020 - 05 May 2020\SP1053.accdb',
+        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2020\06 July 2020 - 20 July 2020\SP1053.accdb',
+        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2020\06 Nov 2020 - 26 Nov 2020\SP1053.accdb',
+        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2020\07 Oct 2020 - 19 Oct 2020\SP1053.accdb',
+        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2020\17 Aug 2020 - 03 Sep 2020\SP1053.accdb',
+        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2020\19 Dec 2020 - 28 Jan 2021\SP1053.accdb',
+        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2020\20 Oct 2020 - 05 Nov 2020\SP1053.accdb',
+        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2020\27 Nov 2020 - 18 Dec 2020\SP1053.accdb'
+        ]
+
         # self.path = path
         self.starting_day = starting_day
         self.ending_day = ending_day
@@ -224,42 +244,73 @@ class module_data_processor:
         # sort the df by time.
         # remove all empty rows: it must start with a number.
         df = df.dropna()
-        # some date that use A instead of AM, so lets add m at the end if anything not ending with an m:
-        # remove all M:
-        df['xts'] = df['xts'].str.replace("M", "")
-        # add the M back: no matter wheter we had M before, this will results in everything having one M.
-        df['xts'] = df['xts'].astype(str) + 'M'
-        # we also need to have zero padding for the hour to match the %I.
-        # find the ones that have only one digit for hour, we expect the xts column second element to be :
-        df['xts'] = df['xts'].str.zfill(11)
-        # convert the 00 to 12 to match with %I.
-        # df['xts'].astype(str)
-        df = df[df['xts']!='05:04:б9 AM']
-        df['xts_datetime'] = pd.to_datetime(df['xts'].astype(str), format='%H:%M:%S %p') # this column is an intermedium column, the pm and am are not converted correctly, but it will be corrected in later lines.
-        # convert from string to datetime format.
-        df['xday'] = pd.to_datetime(df['xday'].astype(str), format='%d/%m/%Y ')
 
-        # combine the datetime column:
-        df['year'] = pd.DatetimeIndex(df['xday']).year
-        df['month'] = pd.DatetimeIndex(df['xday']).month
-        df['day'] = pd.DatetimeIndex(df['xday']).day
-        df['hour'] = pd.DatetimeIndex(df['xts_datetime']).hour
-        df['miutes'] = pd.DatetimeIndex(df['xts_datetime']).minute
-        df['second'] = pd.DatetimeIndex(df['xts_datetime']).second
-        df[['time', 'PM']] = df['xts'].str.split(' ', expand=True)
-        df['hour'] = df['hour'] + 12*(df['PM'] == 'PM')
-        df['datetime'] = pd.to_datetime(df.year.astype(str) + ' ' + df.month.astype(str) + ' ' + df.day.astype(str) + ' ' + df.hour.astype(str) + ':' + df.miutes.astype(str) + ':' + df.second.astype(str), format = "%Y %m %d %H:%M:%S")
-        # delete intermedium column to produce the datetime column.
-        df = df.drop(['xts_datetime', 'year', 'month', 'day', 'hour', 'miutes', 'second', 'time', ], axis=1)
 
-        # sort the df by datetime column.
-        df = df.sort_values(by='datetime')
+        # print(df['xts'].str.endswith(('M', 'A', 'P'))
+        # the 2020 data uses 24 hour format instead of am pm.
+        if df['xts'].str.endswith(('M', 'A', 'P')).all():
+            # some date that use A instead of AM, so lets add m at the end if anything not ending with an m:
+            # remove all M:
+            df['xts'] = df['xts'].str.replace("M", "")
+            # add the M back: no matter wheter we had M before, this will results in everything having one M.
+            df['xts'] = df['xts'].astype(str) + 'M'
+            # we also need to have zero padding for the hour to match the %I.
+            # find the ones that have only one digit for hour, we expect the xts column second element to be :
+            df['xts'] = df['xts'].str.zfill(11)
+            # print(df['xday'])
+            # convert the 00 to 12 to match with %I.
+            # df['xts'].astype(str)
+            df = df[df['xts']!='05:04:б9 AM']
+            df['xts_datetime'] = pd.to_datetime(df['xts'].astype(str), format='%H:%M:%S %p') # this column is an intermedium column, the pm and am are not converted correctly, but it will be corrected in later lines.
+            df['xday'] = pd.to_datetime(df['xday'].astype(str), format='%d/%m/%Y ')
+            # combine the datetime column:
+            df['year'] = pd.DatetimeIndex(df['xday']).year
+            df['month'] = pd.DatetimeIndex(df['xday']).month
+            df['day'] = pd.DatetimeIndex(df['xday']).day
+            df['hour'] = pd.DatetimeIndex(df['xts_datetime']).hour
+            df['miutes'] = pd.DatetimeIndex(df['xts_datetime']).minute
+            df['second'] = pd.DatetimeIndex(df['xts_datetime']).second
+            df[['time', 'PM']] = df['xts'].str.split(' ', expand=True)
+            df['hour'] = df['hour'] + 12*(df['PM'] == 'PM')
+            df['datetime'] = pd.to_datetime(df.year.astype(str) + ' ' + df.month.astype(str) + ' ' + df.day.astype(str) + ' ' + df.hour.astype(str) + ':' + df.miutes.astype(str) + ':' + df.second.astype(str), format = "%Y %m %d %H:%M:%S")
+            # delete intermedium column to produce the datetime column.
+            df = df.drop(['xts_datetime', 'year', 'month', 'day', 'hour', 'miutes', 'second', 'time', ], axis=1)
 
-        # filter out the data through datetime column:
-        df = df[np.array(df['datetime']>self.starting_datetime) * np.array(df['datetime']<self.ending_datetime)]
+            # sort the df by datetime column.
+            df = df.sort_values(by='datetime')
 
-        # store df into the object.
-        self.df_days = df
+            # filter out the data through datetime column:
+            df = df[np.array(df['datetime']>self.starting_datetime) * np.array(df['datetime']<self.ending_datetime)]
+
+            # store df into the object.
+            self.df_days = df
+
+        else:
+            df['xts_datetime'] = pd.to_datetime(df['xts'].astype(str), format='%H:%M:%S ')
+            # find the ones that have only one digit for hour, we expect the xts column second element to be :
+            # df['xday'] = df['xday'].str.zfill(11)
+            df['xday'] = pd.to_datetime(df['xday'].astype(str), format='%Y/%m/%d  ')
+            # combine the datetime column:
+            df['year'] = pd.DatetimeIndex(df['xday']).year
+            df['month'] = pd.DatetimeIndex(df['xday']).month
+            df['day'] = pd.DatetimeIndex(df['xday']).day
+            df['hour'] = pd.DatetimeIndex(df['xts_datetime']).hour
+            df['miutes'] = pd.DatetimeIndex(df['xts_datetime']).minute
+            df['second'] = pd.DatetimeIndex(df['xts_datetime']).second
+            df['datetime'] = pd.to_datetime(df.year.astype(str) + ' ' + df.month.astype(str) + ' ' + df.day.astype(str) + ' ' + df.hour.astype(str) + ':' + df.miutes.astype(str) + ':' + df.second.astype(str), format = "%Y %m %d %H:%M:%S")
+            # delete intermedium column to produce the datetime column.
+            df = df.drop(['xts_datetime', 'year', 'month', 'day', 'hour', 'miutes', 'second'], axis=1)
+
+            # sort the df by datetime column.
+            df = df.sort_values(by='datetime')
+
+            # filter out the data through datetime column:
+            df = df[np.array(df['datetime']>self.starting_datetime) * np.array(df['datetime']<self.ending_datetime)]
+
+            # store df into the object.
+            self.df_days = df
+
+
 
         return df
 
@@ -296,6 +347,7 @@ class module_data_processor:
         """
         # run the code to extract the dates.
         df = self.date_selector()
+        # print(df)
         # use a new column to identify whether to delete it by multiplying everything together
         product = df['Voc'] * df['Isc'] * df['Vm'] * df['Im'] * df['Pm'] * df['FF']
         df['nonzero'] = (product != 0)
@@ -335,6 +387,9 @@ class module_data_processor:
 
         # split the df_nonzero into a list of pd dataframe for each module:
         self.module_df_list = pd_list
+
+        # store the module selection into the object.
+        self.module_num_list = module_num_list
 
 
     def data_parameter_plot(self, x_name, y_name, module_number=2):
@@ -379,7 +434,7 @@ class module_data_processor:
             # select the x and y column names:
             y = pd_module[target_name]
             x = pd_module['datetime']
-            plt.plot(x, y, label='Module ' + str(counter), c=self.colour_list[counter - 1])
+            plt.plot(x, y, label='Module ' + str(self.module_num_list[counter-1]), c=self.colour_list[counter - 1])
         # look up the name from dictionary:
         target_name = self.column_name_dict[target_name]
         plt.xlabel('Time')
@@ -408,7 +463,7 @@ class module_data_processor:
             x = pd_module[x_name]
             # select the y axis data:
             y = pd_module[y_name]
-            plt.scatter(x, y, label='Module ' + str(counter), s=10, c=self.colour_list[counter - 1])
+            plt.scatter(x, y, label='Module ' + str(self.module_num_list[counter-1]), s=10, c=self.colour_list[counter - 1])
         # look up the name from dictionary:
         x_name = self.column_name_dict[x_name]
         y_name = self.column_name_dict[y_name]
