@@ -1,6 +1,17 @@
 '''
+Object structure:
+1. file_date_reader generate a list of list, which correspond to the date include in each access file.
+2. zero_removr: collect all the non-zero datapoint into: df_nonzero
+3. module selector: input is df_nonzero, then it generates:
+    -updated df_nonzero: a pd dataframe filtered out the modules not selected.
+    -module_df_list: a list of pd dataframe correspond to each selected module.
+    -module_num_list: a list of number correspond to the selected module 
+4. multi_module_resampler: input is module_num_list and module_df_list, then output is:module_df_resampled (a list of pd dataframe for each module after resampling)
+5. The plot is plot based on module_df_resampled. (applying outlier removal based on self.iqr_width)
+
+
 to do:
-1. Try to make the code process each df one by one then concanate.
+1. add another zero removal at the end before plotting.
 '''
 
 # %%-- import the libraries
@@ -19,7 +30,7 @@ class module_data_processor:
     """
 
 
-    def __init__(self, path, starting_day, ending_day, starting_time, ending_time):
+    def __init__(self, path, starting_day, ending_day, starting_time, ending_time, iqr_width=10):
         """
         1. Write the path, starting date and ending date into the object.
         2. Input:
@@ -85,11 +96,14 @@ class module_data_processor:
         self.ending_datetime = datetime.datetime.strptime(ending_datetime, "%Y_%m_%d %H:%M:%S")
         # print(self.starting_datetime)
         # print(self.ending_datetime)
+        self.years_available = range(int(year_st), int(year_ed) + 1)
+        # print(list(self.years_available))
 
         # define a dictionary that tranlate the column name from raw data to more understandable names:
         self.column_name_dict = {'AH':'Absolute humidity %',
         'AT':'Ambient temperature (\u00B0C)',
         'MT':'Module temperature (\u00B0C)',
+        'IR_BEV':'Irradiance (W/m2)',
         'Voc': 'Voc(V)',
         'Isc':'Isc (A)',
         'Vm':'Maximum power voltage (V)',
@@ -99,6 +113,9 @@ class module_data_processor:
 
         # define a list of colour correspond to each module: blue, green red, magenta, and yellow.
         self.colour_list = ['b', 'g', 'r', 'c', 'm', 'y']
+
+        # define the whisker width for outlier removeal
+        self.iqr_width = iqr_width
 
 
     def table_name_reader(self, path):
@@ -144,7 +161,6 @@ class module_data_processor:
             files_date.append(dates)
         # store the result into the object.
         self.list_of_date = files_date
-
 
 
     def data_reader_day(self, date):
@@ -252,6 +268,8 @@ class module_data_processor:
             # read the df
             # print(date)
             df = self.data_reader_day(date)
+            if df.empty:
+                continue
             # print(df)
             
 
@@ -338,7 +356,7 @@ class module_data_processor:
 
             # concanate with original one:
             df2 = pd.concat([df, df2], axis=0)
-        print(df2)
+        # print(df2)
 
         # store df into the object.
         self.df_days = df2
@@ -362,21 +380,23 @@ class module_data_processor:
             print(files)
             if date in files:
                 # if the file have this date, break the loop
-                print(true)
+                # print('true')
                 break
             else:
                 # otherwise update the counter
                 counter = counter + 1
         # now we should get the counter that is the index of the file.
-        print(counter)
+        # print(counter)
         path = self.path[counter]
         # output the result:
+        print(path)
         return path
 
 
-    def zero_remover(self):
+    def zero_remover(self, removezero=True):
         """
         This function takes the df_days and remove the zero outliers
+        removezero: a boolean input, if true, remove the zeros, otherwise just read the data.
         """
         # run the code to extract the dates.
         df = self.date_selector()
@@ -386,10 +406,14 @@ class module_data_processor:
         df['nonzero'] = (product != 0)
         # print(df)
         # filter out the zero data.
-        df_nonzero = df[df['nonzero']==True]
+        if removezero == True:
+            df_nonzero = df[df['nonzero']==True]
+        else:
+            df_nonzero = df
         # # delete the extra label column.
         # df_nonzero = df_nonzero.drop('whether_keep')
         # store the data in the object
+        # print(np.min(df_nonzero))
         self.df_nonzero = df_nonzero
 
 
@@ -450,7 +474,7 @@ class module_data_processor:
         plt.show()
 
 
-    def data_ploter_with_time_multimodule(self, target_name):
+    def data_ploter_with_time_multimodule(self, target_name, linear_fit=False):
         '''
         This function will plot the parmeter with time but plot multiple module value on the same graph.
         '''
@@ -462,10 +486,47 @@ class module_data_processor:
             pd_module = module
             # remove the outliers
             pd_module = self.subset_by_iqr(df=pd_module, column=target_name)
+            # try to split the pd module by year:
+            # print(pd_module)
+            for year in self.years_available:
+                y = pd_module[pd_module['datetime'].dt.year == year][target_name]
+                x = pd_module[pd_module['datetime'].dt.year == year]['datetime']
             # select the x and y column names:
-            y = pd_module[target_name]
-            x = pd_module['datetime']
-            plt.plot(x, y, label='Module ' + str(self.module_num_list[counter-1]), c=self.colour_list[counter - 1])
+            # y = pd_module[target_name]
+            # x = pd_module['datetime']
+                plt.plot(x, y, label='Module ' + str(self.module_num_list[counter-1]) + ' (' + str(year) + ')')
+                # add the linear plot: both the line and the equation.
+                # print(x)
+                # print(x[0])
+                # x_fit = []
+                # for dx in x:
+                    # print(datetime.datetime.fromtimestamp(dx))
+                    # print(datetime.date(self.years_available[0],1,1).timestamp())
+                    # x_fit.append(datetime.datetime.fromtimestamp(dx) - datetime.date(self.years_available[0],1,1))
+                if linear_fit == True:
+                    x2 = []
+                    for dx in x:
+                        # print(dx)
+                        # print(str(dx))
+                        # print(self.time_to_int(str(dx)))
+                        total = int(dx.strftime('%S'))
+                        # print(total)
+                        # total += int(dx.strftime('%M')) * 60
+                        # print(total)
+                        # total += int(dx.strftime('%H')) * 60 * 60
+                        # print(total)
+                        total += (int(dx.strftime('%j')) - 1)
+                        # print(total)
+                        total += (int(dx.strftime('%Y')) - 2020) * 365
+                        # print(total)
+                        x2.append(total)
+
+                    # print(y.type())
+                    coef = np.polyfit(x2,y,1)
+                    poly1d_fn = np.poly1d(coef)
+                    plt.plot(x, poly1d_fn(x2), '--k')
+                    print('The slope is ' + str(round(coef[0], 4)) + '/day' + ' for module ' + str(self.module_num_list[counter-1]))
+
         # look up the name from dictionary:
         target_name = self.column_name_dict[target_name]
         plt.xlabel('Time')
@@ -476,11 +537,10 @@ class module_data_processor:
         plt.show()
 
 
-    def data_parameter_plot_multimodule(self, x_name, y_name):
+    def data_parameter_plot_multimodule(self, x_name, y_name, linear_fit=False):
         '''
         This function will plot the parmeter with parameter but plot multiple module value on the same graph.
         '''
-
         plt.figure()
         counter = 0
         for module in self.module_df_sampled:
@@ -490,11 +550,20 @@ class module_data_processor:
             # remove outliers
             pd_module = self.subset_by_iqr(df=pd_module, column=x_name)
             pd_module = self.subset_by_iqr(df=pd_module, column=y_name)
-            # select the x and y column names:
-            x = pd_module[x_name]
-            # select the y axis data:
-            y = pd_module[y_name]
-            plt.scatter(x, y, label='Module ' + str(self.module_num_list[counter-1]), s=10, c=self.colour_list[counter - 1])
+            for year in self.years_available:
+                y = pd_module[pd_module['datetime'].dt.year == year][y_name]
+                x = pd_module[pd_module['datetime'].dt.year == year][x_name]
+                plt.scatter(x, y, label='Module ' + str(self.module_num_list[counter-1]) + ' (' + str(year) + ')', s=10)
+                if linear_fit == True:
+                    coef = np.polyfit(x,y,1)
+                    poly1d_fn = np.poly1d(coef)
+                    plt.plot(x, poly1d_fn(x), '--k')
+                    print('The slope is ' + str(round(coef[0], 4)) + ' for module ' + str(self.module_num_list[counter-1]))
+            # # select the x and y column names:
+            # x = pd_module[x_name]
+            # # select the y axis data:
+            # y = pd_module[y_name]
+            # plt.scatter(x, y, label='Module ' + str(self.module_num_list[counter-1]), s=10, c=self.colour_list[counter - 1])
         # look up the name from dictionary:
         x_name = self.column_name_dict[x_name]
         y_name = self.column_name_dict[y_name]
@@ -506,7 +575,7 @@ class module_data_processor:
         plt.show()
 
 
-    def data_resampler(self, df, sample_length='hour'):
+    def data_resampler(self, df, sample_length='hour', select='mean'):
         '''
         This function takes the pd dataframe after removing all zeros, then resample the data based on the requirement: minute, hour, day, month.
         '''
@@ -516,17 +585,26 @@ class module_data_processor:
             # print(df_nonzero)
             # convert the datetime column to hour:
             df_datetime = df_nonzero['datetime']
-            df_nonzero = df_nonzero.resample('60min', on='datetime').mean()
+            if select == 'mean':
+                df_nonzero = df_nonzero.resample('60min', on='datetime').mean()
+            else:
+                df_nonzero = df_nonzero.resample('60min', on='datetime').max()
             df_nonzero['datetime'] = df_nonzero.index
             df_nonzero = df_nonzero.fillna(0)
         elif sample_length == 'day':
             df_datetime = df_nonzero['datetime']
-            df_nonzero = df_nonzero.resample('D', on='datetime').mean()
+            if select == 'mean':
+                df_nonzero = df_nonzero.resample('D', on='datetime').mean()
+            else:
+                df_nonzero = df_nonzero.resample('D', on='datetime').max()
             df_nonzero['datetime'] = df_nonzero.index
             df_nonzero = df_nonzero.fillna(0)
         elif sample_length == 'month':
             df_datetime = df_nonzero['datetime']
-            df_nonzero = df_nonzero.resample('M', on='datetime').mean()
+            if select == 'mean':
+                df_nonzero = df_nonzero.resample('M', on='datetime').mean()
+            else:
+                df_nonzero = df_nonzero.resample('M', on='datetime').max()
             df_nonzero['datetime'] = df_nonzero.index
             df_nonzero = df_nonzero.fillna(0)
         else:
@@ -536,7 +614,7 @@ class module_data_processor:
         return df_nonzero
 
 
-    def multi_module_resampler(self, sample_length='hour'):
+    def multi_module_resampler(self, sample_length='hour', select='mean'):
         '''
         This function uses the data_sampler function in this object to resample the df for each module.
         '''
@@ -546,7 +624,7 @@ class module_data_processor:
         module_df_sampled = []
         for module_df in module_df_list:
             # resample it:
-            module_sampled = self.data_resampler(df=module_df, sample_length=sample_length)
+            module_sampled = self.data_resampler(df=module_df, sample_length=sample_length, select=select)
             module_df_sampled.append(module_sampled)
             # print(module_sampled)
         # save the result to the object:
@@ -588,7 +666,7 @@ class module_data_processor:
         return path
 
 
-    def subset_by_iqr(self, df, column, whisker_width=1.5):
+    def subset_by_iqr(self, df, column):
         """Remove outliers from a dataframe by column, including optional
            whiskers, removing rows for which the column value are
            less than Q1-1.5IQR or greater than Q3+1.5IQR.
@@ -600,6 +678,8 @@ class module_data_processor:
         Returns:
             (`:obj:pd.DataFrame`): Filtered dataframe
         """
+        # read the widker width from the object
+        whisker_width = self.iqr_width
         # Calculate Q1, Q2 and IQR
         q1 = df[column].quantile(0.25)
         q3 = df[column].quantile(0.75)
@@ -608,3 +688,124 @@ class module_data_processor:
         filter = (df[column] >= q1 - whisker_width*iqr) & (df[column] <= q3 + whisker_width*iqr)
         # print('filtered')
         return df.loc[filter]
+    
+
+    def bin_selector(self, param_name, centre_value=40, rangevalue=1):
+        '''
+        param_name: the name of the parameter to filter with
+        centre_value: selected centre value.
+        rangevalue: the chosen data will only include the selected value plus or minus rangevalue
+        '''
+        # load the data from object
+        dflist = self.module_df_sampled
+        dflist_filterd = []
+        for df in dflist:
+            # apply filtering
+            filter = ((df[str(param_name)]>(centre_value-rangevalue)) & (df[str(param_name)]<(centre_value+rangevalue)))
+            df = df.loc[filter]
+            # store the object
+            dflist_filterd.append(df)
+        # store the object
+        self.module_df_sampled = dflist_filterd
+
+
+    def temperature_correction(self, Voc_coeff=-0.3, Isc_coeff=0.05, Pmpp_coeff=0.35, targetT = 25, Voc_coeff_unit = '%/C'):
+        '''
+        Input:
+            Voc_coeff: open cirucit voltage temperature coefficient the default unit is %/C
+            Isc_coeff: short circuit current temperature coefficient the default unit is %/C
+            Pmpp_coeff: maximum power temperature coefficient the default unit is %/C
+            target_T: the temperature to correct to, default is 25 C.
+
+        What it does:
+            update Voc, Isc, Pmpp and FF only (not for Vmmp or Impp)
+        '''
+        # load the df from the object
+        dflist = self.module_df_sampled
+        dflist_T_corrected = []
+        for df in dflist:
+            # create a colume representing hte difference between real T and corrected T
+            df['dT'] = df['MT'] - targetT
+
+            # add the corrected Voc colume
+            if Voc_coeff_unit == '%/C':
+                df['Voc'] = df['Voc'] - df['Voc']*(Voc_coeff)/100*df['dT']
+            else:
+                print('The Voc temperature coefficient unit assumed to be mV/C')
+                df['Voc'] = df['Voc'] - (Voc_coeff)*df['dT']/1e3
+            # print(df['Voc_T_corrected'])
+
+            # add the corrected Isc colume
+            df['Isc'] = df['Isc'] - df['Isc']*(Isc_coeff)/100*df['dT']
+            # print(df['Isc_T_corrected'])
+
+            # add the corrected Pmpp colume
+            df['Pm'] = df['Pm'] - df['Pm']*(Pmpp_coeff)/100*df['dT']
+            # print(df['Pmpp_T_corrected'])
+
+            # add the corrected FF colume
+            df['FF'] = df['Pm']/df['Isc']/df['Voc']
+            # print(df['FF_T_corrected'])
+            
+            # store the update pd dataframe
+            dflist_T_corrected.append(df)
+        
+        # store the temperature correction into the object
+        self.module_df_sampled = dflist_T_corrected
+
+
+    def irradiance_correction(self, alpha=1):
+        '''
+        input: alpha: irradiance correction factor for open circuit voltage.
+
+        What it does:
+        1. Calcualte the difference from measured irradiance to 1000W/m2 (as a factor)
+        
+        '''
+        # load the list of df from object
+        dflist = self.module_df_sampled
+        dflist_IR_corrected = []
+
+        for df in dflist:
+            # calcualte the factor between measured Ir with 1000
+            df['Ir_factor'] = df['IR_BEV']/1e3
+
+            # correct Isc
+            df['Isc'] = df['Isc']/df['Ir_factor']
+
+            # correct Voc: referrnece: "Correction procedures for temperature and irradiance of PV modules, Silvia Luciani..."
+            df['Voc'] = df['Voc'] - df['Voc']*np.log(df['Ir_factor'])*alpha
+
+            # correct Pm
+            df['Pm'] = df['Pm']/df['Ir_factor']
+
+            # correct FF
+            df['FF'] = df['Pm']/df['Isc']/df['Voc']
+
+            dflist_IR_corrected.append(df)
+
+        self.module_df_sampled = dflist_IR_corrected
+
+
+    def time_to_int(dateobj):
+        '''
+        This function tries to convert datetime into a number (seconds)
+        '''
+        total = int(dateobj.strftime('%S'))
+        total += int(dateobj.strftime('%M')) * 60
+        total += int(dateobj.strftime('%H')) * 60 * 60
+        total += (int(dateobj.strftime('%j')) - 1) * 60 * 60 * 24
+        total += (int(dateobj.strftime('%Y')) - 1970) * 60 * 60 * 24 * 365
+        return total
+
+
+    def zero_removal2(self):
+        '''
+        This function update the df frame named "module_df_sampled"
+        '''
+        # prepare a list to collect non zero values
+        df_list2 = []
+        for module in self.module_df_sampled:
+            df_list2.append(module[module['Pm']!=0])
+        # store the updated df list into the object
+        self.module_df_sampled = df_list2
