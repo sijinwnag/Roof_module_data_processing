@@ -581,7 +581,7 @@ class module_data_processor:
         plt.title(' Between '+  str(self.starting_datetime) + ' and ' + str(self.ending_datetime))
         plt.gcf().autofmt_xdate()
         if color_code == False:
-            plt.legend()
+            plt.legend(loc='lower left')
         plt.show()
 
 

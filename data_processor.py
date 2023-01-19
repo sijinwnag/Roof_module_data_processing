@@ -20,8 +20,8 @@ import matplotlib.pyplot as plt
 
 # %% Cell 2: The input cell
 # the code will include both boundary for starting and ending date.
-starting_day = '2022_1_1' 
-ending_day = '2022_12_31'
+starting_day = '2022_1_2' 
+ending_day = '2022_1_3'
 starting_time = '8:00:00 AM'
 ending_time = '9:00:32 PM'
 
@@ -58,11 +58,11 @@ paths = [
         ]
 
 # module_number_list is a list of module we want to investigates, there are 6 modules and the correponding numbers are from 1 to 6
-module_number_list = [6]
+module_number_list = [1, 2]
 
 # sample_length is a string representing the period we want to sample
 # the options are: 'hour', 'day', 'month'
-sample_length = 'second'
+sample_length = 'hour'
 
 # percentile is a number ranging from 0 to 100, selecting the top xx percent of electrical data
 percentile = 90
@@ -72,14 +72,14 @@ percentile = 90
 # T_central +- dT
 # the unit is degree C
 T_central=45
-dT = 1
+dT = 100
 
 # Ir_central is a float representing the centre value of the temperature 
 # we want to represent, the selected data should be within the range of 
 # T_central +- dIr
 # the unit is W/m2
 Ir_central = 800
-dIr = 10
+dIr = 1000
 
 # %% Cell 3: define the object
 data1 = module_data_processor(path = paths, starting_day=starting_day, ending_day=ending_day, starting_time=starting_time, ending_time=ending_time)
@@ -151,13 +151,13 @@ print('The mean of FF is ' + str(data1.module_df_sampled[0]['FF'].mean()))
 # %% Cell 6: plot the data:
 
 # plot the parameter with time
-# data1.data_ploter_with_time_multimodule(target_name='Isc', linear_fit=True, color_code=True, color_name='IR_BEV', interpol=False)
+data1.data_ploter_with_time_multimodule(target_name='Isc', linear_fit=False, color_code=False, color_name='IR_BEV', interpol=True)
 # data1.data_ploter_with_time_multimodule(target_name='IR_BEV', linear_fit=True)
 # data1.data_ploter_with_time_multimodule(target_name='MT', linear_fit=True)
 # data1.data_ploter_with_time_multimodule(target_name='Voc', linear_fit=True, color_code=True, color_name='IR_BEV', interpol=False)
 # data1.data_ploter_with_time_multimodule(target_name='Pm', linear_fit=True, color_code=True, color_name='IR_BEV', interpol=False)
 # data1.data_ploter_with_time_multimodule(target_name='FF', linear_fit=True, color_code=True, color_name='IR_BEV', interpol=False)
-data1.data_ploter_with_time_multimodule(target_name='eff', linear_fit=True, color_code=True, color_name='IR_BEV', interpol=False) # the efficinecy is no known because we don't know hte module area
+# data1.data_ploter_with_time_multimodule(target_name='eff', linear_fit=True, color_code=True, color_name='IR_BEV', interpol=False) # the efficinecy is no known because we don't know hte module area
 
 # plot the parameter with another parameter
 # data1.data_parameter_plot_multimodule(x_name='MT', y_name='Isc', linear_fit=True, color_code=True)
