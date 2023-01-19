@@ -1,17 +1,48 @@
 '''
-Object structure:
-1. file_date_reader generate a list of list, which correspond to the date include in each access file.
-2. zero_removr: collect all the non-zero datapoint into: df_nonzero
-3. module selector: input is df_nonzero, then it generates:
-    -updated df_nonzero: a pd dataframe filtered out the modules not selected.
-    -module_df_list: a list of pd dataframe correspond to each selected module.
-    -module_num_list: a list of number correspond to the selected module 
-4. multi_module_resampler: input is module_num_list and module_df_list, then output is:module_df_resampled (a list of pd dataframe for each module after resampling)
-5. The plot is plot based on module_df_resampled. (applying outlier removal based on self.iqr_width)
+Object functions:
 
+__init__: store the input into the object.
 
-to do:
-1. add interpolation function into the object.
+table_name_reader: read the table name of each given microsoft access file.
+
+file_date_reader: read the available dates of all given microsoft access file.
+
+data_reader_day: read all the access file day by day and store into a pd dataframe.
+
+date_selctor: select which days to read based on the user input.
+
+file_path_locator: for each input day, find which file include this day and ouput its path.
+
+zero_remover: remove the zeros.
+
+module_selector: select which data to include based on the user input modules numbers.
+
+data_ploter_with_time_multimodule: plot the user-defined parameter with time.
+
+data_parameter_plot_multimodule: plot one parameter with another.
+
+data_resampler: resample the data based on the user defined period.
+
+multi_module_resampler: resample the data with more than one module.
+
+path_selector: locate the path of a given date.
+
+subset_by_iqr: remove the outliers based on the defined quantile number.
+
+bin_selector: filter the data within the given parameter range.
+
+temperature_correction: correct the data based on the temperature coefficients.
+
+irradiance_correction: correct the data based on the irradiance.
+
+time_to_int: a function that convert a datetime to an interger.
+
+zero_removal2: another function to remove the zeros.
+
+hist_visual: a function to visualize the data by plotting histogram.
+
+interpolator: a function to interpolate the empty data.
+
 '''
 
 # %%-- import the libraries
@@ -22,6 +53,7 @@ import pyodbc
 from sqlalchemy import create_engine
 import datetime
 import matplotlib.dates as mdates
+from os import walk
 # %%-
 
 
@@ -31,13 +63,18 @@ class module_data_processor:
     """
 
 
-    def __init__(self, path, starting_day, ending_day, starting_time, ending_time, iqr_width=10):
+    def __init__(self, path, starting_day, ending_day, starting_time, ending_time, iqr_width=10, resample_name='IR_BEV', module_Area = 2.578716):
         """
         1. Write the path, starting date and ending date into the object.
         2. Input:
             pathlist: a list of databse access path we want to load.
             starting date: the first day to start.
             ending date: the end of the time to look at.
+            starting_time: a string representing the hourly time of the first day to start including data
+            ending_timme: the tie of the last day to stop including data
+            iqr_width: the number of iqr to include as "not outlier"
+            resample_name: a string showing which colume to resample on when resampling
+            module_Area: a number corresponding to the area of each module.
         """
 
         # self.pathlist = pathlist
@@ -45,32 +82,17 @@ class module_data_processor:
         # self.ending_time = ending_time
         # the path is a list of string correspond to the path of each files.
         # data for 2022.
-        self.path = [
-        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-01-25_22-02-28.accdb',
-        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-03-01_22-03-31.accdb',
-        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-04-01_22-05-02.accdb',
-        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-05-02_22-05-31.accdb',
-        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-05-31_22-07-01.accdb',
-        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-07-01_22-07-31.accdb',
-        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2022\22-08-01-22_09-01.accdb', # the above are 2022 data.
-        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2021\SP1053 (2021.8.10-2021.9.15).accdb',
-        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2021\SP1053 (2021.11.2 - 2022.1.3).accdb',
-        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2021\SP1053(2021.4.1-2021.5.4).accdb',
-        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2021\SP1053(2021.5.4-2021.6.16).accdb',
-        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2021\SP1053(2021.6.16-2021.8.9).accdb', # the above are 2021 data.
-        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2020\02 June 2020 - 06 July 2020\SP1053.accdb',
-        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2020\03 Sep 2020 - 07 Oct 2020\SP1053.accdb',
-        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2020\04 March 2020 - 05 Apr 2020\SP1053.accdb',
-        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2020\05 May 2020 - 02 June 2020\SP1053.accdb',
-        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2020\06 Apr 2020 - 05 May 2020\SP1053.accdb',
-        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2020\06 July 2020 - 20 July 2020\SP1053.accdb',
-        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2020\06 Nov 2020 - 26 Nov 2020\SP1053.accdb',
-        # r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2020\07 Oct 2020 - 19 Oct 2020\SP1053.accdb',
-        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2020\17 Aug 2020 - 03 Sep 2020\SP1053.accdb',
-        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2020\19 Dec 2020 - 28 Jan 2021\SP1053.accdb',
-        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2020\20 Oct 2020 - 05 Nov 2020\SP1053.accdb',
-        r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data\2020\27 Nov 2020 - 18 Dec 2020\SP1053.accdb'
-        ]
+        self.path = path
+
+        # add more paths into the path list
+
+        # mypath=(r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data')
+
+        # for (filenames) in walk(mypath):
+
+        #     self.path.extend(filenames)
+
+        #     break
 
         # self.path = path
         self.starting_day = starting_day
@@ -110,13 +132,20 @@ class module_data_processor:
         'Vm':'Maximum power voltage (V)',
         'Im': 'Maximum power current (A)',
         'Pm': 'Maximum power (W)',
-        'FF':'Fill factor (%)'}
+        'FF':'Fill factor (%)',
+        'eff': 'Efficiency (%)'}
 
         # define a list of colour correspond to each module: blue, green red, magenta, and yellow.
         self.colour_list = ['b', 'g', 'r', 'c', 'm', 'y']
 
         # define the whisker width for outlier removeal
         self.iqr_width = iqr_width
+
+        # define the resampling parameter name: default is irradiance
+        self.resample_name = resample_name
+
+        # define the module area
+        self.module_area = module_Area
 
 
     def table_name_reader(self, path):
@@ -151,7 +180,7 @@ class module_data_processor:
 
     def file_date_reader(self):
         '''
-        input: the files
+        input: the files paths directory from the object.
         output: a list of string of all dates corresponding to each file. (a list of list)
         '''
         files_date = []
@@ -397,10 +426,15 @@ class module_data_processor:
         # run the code to extract the dates.
         df = self.date_selector()
         # # print(df)
+
         # use a new column to identify whether to delete it by multiplying everything together
         product = df['Voc'] * df['Isc'] * df['Vm'] * df['Im'] * df['Pm'] * df['FF']
         df['nonzero'] = (product != 0)
         # print(df)
+
+        # compute the efficiency
+        df['eff'] = df['Pm']/df['IR_BEV']/self.module_area*100
+
         # filter out the zero data.
         if removezero == True:
             df_nonzero = df[df['nonzero']==True]
@@ -416,8 +450,8 @@ class module_data_processor:
     def module_selector(self, module_num_list = [1, 2, 3]):
         """
         This process is after the step of zero remover:
-        it takes the pd dataframe after removal of zeros.
-        and filter the dataset to have only a specific module.
+        input: it takes the pd dataframe after removal of zeros.
+        output: filter the dataset to have only a specific module.
         """
         # read the df from object.
         df_nonzero = self.df_nonzero
@@ -426,49 +460,18 @@ class module_data_processor:
         keep_data_list = np.zeros(np.shape(df_nonzero['cno'] == module_num_list[0]))
         for number in module_num_list:
             keep_data = np.array(df_nonzero['cno'] == number)
-            # # print(keep_data)
-            # # print(keep_data_list)
             keep_data_list = np.any([keep_data_list, keep_data], axis=0)
             pd_list.append(df_nonzero[keep_data])
 
-        # # print(np.sum(keep_data_list))
         df_nonzero_module = df_nonzero[keep_data_list]
         # store the filtered data into the object:
-        self.df_nonzero = df_nonzero_module
+        self.df_nonzero_module = df_nonzero_module
 
         # split the df_nonzero into a list of pd dataframe for each module:
-        # # print(pd_list)
         self.module_df_list = pd_list
 
         # store the module selection into the object.
         self.module_num_list = module_num_list
-
-
-    def data_parameter_plot(self, x_name, y_name, module_number=2):
-        '''
-        This function takes the value from the selected module and plot inter parameter.
-        '''
-        # read the data from the object.
-        df = self.df_nonzero
-        # filter out the other module number
-        df = self.module_selector(module_number=module_number, return_value=True)
-        # select the x axis data;
-        x_data = df[x_name]
-        # select the y axis data:
-        y_data = df[y_name]
-
-        # look up the name to plot from object dictionary:
-        x_name = self.column_name_dict[x_name]
-        y_name = self.column_name_dict[y_name]
-
-        # plot the data:
-        plt.figure()
-        plt.scatter(x_data, y_data)
-        plt.xlabel(x_name)
-        plt.ylabel(y_name)
-        plt.title(' Between '+  str(self.starting_datetime) + ' and ' + str(self.starting_datetime))
-        # plt.gcf().autofmt_xdate()
-        plt.show()
 
 
     def data_ploter_with_time_multimodule(self, target_name, linear_fit=False, color_code=False, color_name='IR_BEV', interpol=False):
@@ -500,7 +503,6 @@ class module_data_processor:
                 # select the x and y column names:
                 # y = pd_module[target_name]
                 # x = pd_module['datetime']
-                # # print(x)
                 line1 = ax.scatter(x, y, label='Module ' + str(self.module_num_list[counter-1]) + ' (' + str(year) + ')', s=10, color=color_list[counter-1])
                 linelist.append(line1)
                 # for plotting
@@ -508,10 +510,10 @@ class module_data_processor:
                 # if the time ranges for smaller than 3 days, don't include date in x axis
                 if (self.ending_datetime - self.starting_datetime)<datetime.timedelta(days=3):
                     ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
-                elif (self.ending_datetime - self.starting_datetime)>datetime.timedelta(days=31):
-                    ax.xaxis.set_major_formatter(mdates.DateFormatter('%d/%m/%Y %H:%M'))
+                # elif (self.ending_datetime - self.starting_datetime)>datetime.timedelta(days=31):
+                #     ax.xaxis.set_major_formatter(mdates.DateFormatter('%d/%m/%Y %H:%M'))
                 else:
-                    ax.xaxis.set_major_formatter(mdates.DateFormatter('%d/%m/%Y %H:%M'))
+                    ax.xaxis.set_major_formatter(mdates.DateFormatter('%d/%m/%Y'))
                 # ax.xaxis.set_tick_params(rotation=90)
 
                 if color_code == True:
@@ -542,32 +544,20 @@ class module_data_processor:
 
 
                 # add the linear plot: both the line and the equation.
-                # # print(x)
-                # # print(x[0])
                 # x_fit = []
                 # for dx in x:
-                    # # print(datetime.datetime.fromtimestamp(dx))
-                    # # print(datetime.date(self.years_available[0],1,1).timestamp())
                     # x_fit.append(datetime.datetime.fromtimestamp(dx) - datetime.date(self.years_available[0],1,1))
                 if linear_fit == True:
                     x2 = []
                     for dx in x:
-                        # # print(dx)
-                        # # print(str(dx))
-                        # # print(self.time_to_int(str(dx)))
                         total = int(dx.strftime('%S'))
-                        # # print(total)
-                        # total += int(dx.strftime('%M')) * 60
-                        # # print(total)
-                        # total += int(dx.strftime('%H')) * 60 * 60
-                        # # print(total)
                         total += (int(dx.strftime('%j')) - 1)
-                        # # print(total)
                         total += (int(dx.strftime('%Y')) - 2020) * 365
-                        # # print(total)
                         x2.append(total)
 
-                    # # print(y.type())
+                    # make the x axis being zero during the start of the year
+                    x2 = np.array(x2)
+                    x2 = x2 - x2[0]
                     coef = np.polyfit(x2,y,1)
                     poly1d_fn = np.poly1d(coef)
                     xplot = x
@@ -579,7 +569,9 @@ class module_data_processor:
                     # xplot = np.arange(np.array(x)[0], np.array(x)[-1])
                     # yplot = np.arange(np.array(poly1d_fn(x2))[0], np.array(poly1d_fn(x2))[-1])
                     plt.plot(xplot, yplot, '--k')
-                    print('The slope is ' + str(round(coef[0], 4)) + '/day' + ' for module ' + str(self.module_num_list[counter-1]))
+                    # print('The slope is ' + str(round(coef[0], 4)) + '/day' + ' for module ' + str(self.module_num_list[counter-1]))
+                    # add the equation onto the plot
+                    plt.text(0.1, 0.9, 'y = ' + str(round(coef[0], 4)) + '/day' + ' + ' + str(round(coef[1], 2)), fontsize=12, transform=plt.gca().transAxes)
 
         # look up the name from dictionary:
         target_name = self.column_name_dict[target_name]
@@ -646,38 +638,60 @@ class module_data_processor:
 
     def data_resampler(self, df, sample_length='hour', select=0.5, param_name='Isc'):
         '''
-        This function takes the pd dataframe after removing all zeros, then resample the data based on the requirement: minute, hour, day, month.
+        input: This function takes the pd dataframe after removing all zeros, 
+        output: then resample the data based on the requirement: minute, hour, day, month.
         '''
         df_nonzero=df
         if sample_length == 'hour':
             # we will resample the data based on the hour colume:
             # # print(df_nonzero)
             # convert the datetime column to hour:
-            df_datetime = df_nonzero['datetime']
-            # if select == 'mean':
-            #     df_nonzero = df_nonzero.resample('60min', on='datetime').mean()
-            # elif select == 'max':
-            #     df_nonzero = df_nonzero.resample('60min', on='datetime').max()
-            df_nonzero = df_nonzero.resample('60min', on='datetime').quantile(q=select)
+            # df_datetime = df_nonzero['datetime']
+            
+            # compute the quantile value for selected parameter
+            quantile_values = df_nonzero.resample('60min', on='datetime').quantile(q=select, interpolation='nearest')[self.resample_name]
+            # define the headings
+            quantile_values = pd.DataFrame(quantile_values, columns=[str(self.resample_name)])
+
+            # select the rows where the selected column is equal to the quantile
+            df_nonzero = df_nonzero.loc[np.in1d(np.array(df_nonzero[self.resample_name]), np.array(quantile_values[self.resample_name]))]
+
+            # resample again to ensure the frequency
+            df_nonzero = df_nonzero.resample('H', on='datetime').first()
+
+            # df_nonzero = df_nonzero.resample('60min', on='datetime').quantile(q=select)
             df_nonzero['datetime'] = df_nonzero.index
             df_nonzero = df_nonzero.fillna(0)
+
         elif sample_length == 'day':
-            df_datetime = df_nonzero['datetime']
-            # if select == 'mean':
-            #     df_nonzero = df_nonzero.resample('D', on='datetime').mean()
-            # else:
-            #     df_nonzero = df_nonzero.resample('D', on='datetime').max()
-            # # print(df_nonzero)
-            df_nonzero = df_nonzero.resample('D', on='datetime').quantile(q=select)
+             # compute the quantile value for selected parameter
+            quantile_values = df_nonzero.resample('D', on='datetime').quantile(q=select, interpolation='nearest')[self.resample_name]
+            # define the headings
+            quantile_values = pd.DataFrame(quantile_values, columns=[str(self.resample_name)])
+
+            # select the rows where the selected column is equal to the quantile
+            df_nonzero = df_nonzero.loc[np.in1d(np.array(df_nonzero[self.resample_name]), np.array(quantile_values[self.resample_name]))]
+
+            # resample again to ensure the frequency
+            df_nonzero = df_nonzero.resample('D', on='datetime').first()
+
+            # df_nonzero = df_nonzero.resample('60min', on='datetime').quantile(q=select)
             df_nonzero['datetime'] = df_nonzero.index
             df_nonzero = df_nonzero.fillna(0)
+
         elif sample_length == 'month':
-            df_datetime = df_nonzero['datetime']
-            # if select == 'mean':
-            #     df_nonzero = df_nonzero.resample('M', on='datetime').mean()
-            # else:
-            #     df_nonzero = df_nonzero.resample('M', on='datetime').max()
-            df_nonzero = df_nonzero.resample('M', on='datetime').quantile(q=select)
+ # compute the quantile value for selected parameter
+            quantile_values = df_nonzero.resample('M', on='datetime').quantile(q=select, interpolation='nearest')[self.resample_name]
+            # define the headings
+            quantile_values = pd.DataFrame(quantile_values, columns=[str(self.resample_name)])
+
+            # select the rows where the selected column is equal to the quantile
+            df_nonzero = df_nonzero.loc[np.in1d(np.array(df_nonzero[self.resample_name]), np.array(quantile_values[self.resample_name]))]
+
+            # resample again to ensure the frequency
+            df_nonzero = df_nonzero.resample('M', on='datetime').first()
+
+            # df_nonzero = df_nonzero.resample('60min', on='datetime').quantile(q=select)
             df_nonzero['datetime'] = df_nonzero.index
             df_nonzero = df_nonzero.fillna(0)
         else:
@@ -689,7 +703,8 @@ class module_data_processor:
 
     def multi_module_resampler(self, sample_length='hour', quantile_v=0.5, param_name='Isc'):
         '''
-        This function uses the data_sampler function in this object to resample the df for each module.
+        Input: This function uses the data_sampler function in this object 
+        output: to resample the df for each module.
         '''
         # store the resampling period into the object
         self.resample_T = sample_length
@@ -714,7 +729,6 @@ class module_data_processor:
         output: the path of the output that contains this table.
         '''
         # create a list of list of table name correspond to each path.
-        # self.file_date_reader()
         # load the result from the object:
         dates_list_of_list = self.list_of_date
         # # print(dates_list_of_list)
@@ -768,9 +782,12 @@ class module_data_processor:
 
     def bin_selector(self, param_name, centre_value=40, rangevalue=1):
         '''
+        input:
         param_name: the name of the parameter to filter with
         centre_value: selected centre value.
         rangevalue: the chosen data will only include the selected value plus or minus rangevalue
+
+        output: a dataframe after selecting the given paramter based on the given range.
         '''
         # load the data from object
         dflist = self.module_df_sampled
@@ -793,7 +810,7 @@ class module_data_processor:
             Pmpp_coeff: maximum power temperature coefficient the default unit is %/C
             target_T: the temperature to correct to, default is 25 C.
 
-        What it does:
+        Output:
             update Voc, Isc, Pmpp and FF only (not for Vmmp or Impp)
         '''
         # load the df from the object
@@ -834,8 +851,8 @@ class module_data_processor:
         '''
         input: alpha: irradiance correction factor for open circuit voltage.
 
-        What it does:
-        1. Calcualte the difference from measured irradiance to 1000W/m2 (as a factor)
+        Output:
+        Calcualte the difference from measured irradiance to 1000W/m2 (as a factor)
         
         '''
         # load the list of df from object
@@ -865,7 +882,9 @@ class module_data_processor:
 
     def time_to_int(dateobj):
         '''
-        This function tries to convert datetime into a number (seconds)
+        Input: a datetime series
+
+        Output: an integer series with unit of second.
         '''
         total = int(dateobj.strftime('%S'))
         total += int(dateobj.strftime('%M')) * 60
@@ -877,7 +896,8 @@ class module_data_processor:
 
     def zero_removal2(self):
         '''
-        This function update the df frame named "module_df_sampled"
+        Input: This function update the df frame named "module_df_sampled"
+        Output: the module_df_sampled after removing zeros.
         '''
         # prepare a list to collect non zero values
         df_list2 = []
@@ -890,6 +910,11 @@ class module_data_processor:
 
     def hist_visual(self, param='MT', bins=100):
         '''
+        Input:
+            param: a string indicating which parameter to select on.
+            bins: the number of bins to have for the histogram,
+        
+        Output:
         This funciton plot a histogram of self.module_df_sampled for each module
         '''
         # load the list of dataframe from the object
@@ -907,7 +932,10 @@ class module_data_processor:
 
     def interpolator(self, x, y):
         '''
-        What this function does:
+        Input:
+        x, y are the series of data to include for plotting before doing the interpolation.
+
+        Output:
         1. check if there is data missing.
         2. if there is data missing, interpolate the missing data with lienar fit.
         3. output:
@@ -963,7 +991,7 @@ class module_data_processor:
         return x_interpolate, y_interpolate, interpolate_ind
         
 
-# %% Appendix: this is the code to open all files in a folder
+# %% Appendix A: this is the code to open all files in a folder
 
 # from os import walk
 
@@ -976,3 +1004,32 @@ class module_data_processor:
 #     f.extend(filenames)
 
 #     break
+# %% Appendix B: these are the functions defined in the object but not endded up being used.
+
+    def data_parameter_plot(self, x_name, y_name, module_number=2):
+        '''
+        This function takes the value from the selected module and plot inter parameter.
+        '''
+        # read the data from the object.
+        df = self.df_nonzero
+        # filter out the other module number
+        df = self.module_selector(module_number=module_number, return_value=True)
+        # select the x axis data;
+        x_data = df[x_name]
+        # select the y axis data:
+        y_data = df[y_name]
+
+        # look up the name to plot from object dictionary:
+        x_name = self.column_name_dict[x_name]
+        y_name = self.column_name_dict[y_name]
+
+        # plot the data:
+        plt.figure()
+        plt.scatter(x_data, y_data)
+        plt.xlabel(x_name)
+        plt.ylabel(y_name)
+        plt.title(' Between '+  str(self.starting_datetime) + ' and ' + str(self.starting_datetime))
+        # plt.gcf().autofmt_xdate()
+        plt.show()
+
+# end of the function
