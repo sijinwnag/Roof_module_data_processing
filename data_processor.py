@@ -20,8 +20,8 @@ import matplotlib.pyplot as plt
 
 # %% Cell 2: The input cell
 # the code will include both boundary for starting and ending date.
-starting_day = '2022_1_2' 
-ending_day = '2022_1_3'
+starting_day = '2022_1_1' 
+ending_day = '2022_12_31'
 starting_time = '8:00:00 AM'
 ending_time = '9:00:32 PM'
 
@@ -58,11 +58,11 @@ paths = [
         ]
 
 # module_number_list is a list of module we want to investigates, there are 6 modules and the correponding numbers are from 1 to 6
-module_number_list = [1, 2]
+module_number_list = [6]
 
 # sample_length is a string representing the period we want to sample
 # the options are: 'hour', 'day', 'month'
-sample_length = 'hour'
+sample_length = 'second'
 
 # percentile is a number ranging from 0 to 100, selecting the top xx percent of electrical data
 percentile = 90
@@ -72,14 +72,14 @@ percentile = 90
 # T_central +- dT
 # the unit is degree C
 T_central=45
-dT = 100
+dT = 1
 
 # Ir_central is a float representing the centre value of the temperature 
 # we want to represent, the selected data should be within the range of 
 # T_central +- dIr
 # the unit is W/m2
 Ir_central = 800
-dIr = 1000
+dIr = 5
 
 # %% Cell 3: define the object
 data1 = module_data_processor(path = paths, starting_day=starting_day, ending_day=ending_day, starting_time=starting_time, ending_time=ending_time)
@@ -92,7 +92,7 @@ data1.file_date_reader()
 # zero removing: this part remove the zero data, but not the empty ones.
 data1.zero_remover(removezero=True)
 
-# %% Cell 5: Select module and resampling period.
+# %% Cell 5: Select data and resampling period.
 
 # select the module to plot: range from 1 to 6
 data1.module_selector(module_num_list=module_number_list)
@@ -115,9 +115,6 @@ self.column_name_dict = {'AH':'Absolute humidity %',
 'Pm': 'Maximum power',
 'FF':'Fill factor (%)'}
 '''
-# print out the medium and std value for T and irr to help us select T and Irr range
-print(data1.module_df_sampled[0]['MT'].median())
-print(data1.module_df_sampled[0]['IR_BEV'].median())
 
 # Select Temperature and Irradiance range
 data1.bin_selector(param_name='MT', centre_value=T_central, rangevalue=dT)
@@ -135,9 +132,17 @@ data1.zero_removal2()
 # remove outlier, define the outlier range here, if not defined, the default value is 10.
 data1.iqr_width = 1.5
 
+# %% Cell 6: Data visualization
+
+# print out the medium and std value for T and irr to help us select T and Irr range
+print(data1.module_df_sampled[0]['MT'].median())
+print(data1.module_df_sampled[0]['IR_BEV'].median())
+
 # plot the histogram of T and irradiance (data visualization)
-# data1.hist_visual(bins=100, param='MT')
-# data1.hist_visual(bins=100, param='IR_BEV')
+data1.hist_visual(bins=100, param='MT')
+data1.hist_visual(bins=100, param='IR_BEV')
+
+# print the std and mean of some parameters.
 print('The std of Isc is ' + str(data1.module_df_sampled[0]['Isc'].std()))
 print('The mean of Isc is ' + str(data1.module_df_sampled[0]['Isc'].mean()))
 print('The std of Voc is ' + str(data1.module_df_sampled[0]['Voc'].std()))
@@ -148,13 +153,13 @@ print('The std of eff is ' + str(data1.module_df_sampled[0]['eff'].std()))
 print('The mean of eff is ' + str(data1.module_df_sampled[0]['eff'].mean()))
 print('The std of FF is ' + str(data1.module_df_sampled[0]['FF'].std()))
 print('The mean of FF is ' + str(data1.module_df_sampled[0]['FF'].mean()))
-# %% Cell 6: plot the data:
+# %% Cell 7: plot the data:
 
 # plot the parameter with time
-data1.data_ploter_with_time_multimodule(target_name='Isc', linear_fit=False, color_code=False, color_name='IR_BEV', interpol=True)
+# data1.data_ploter_with_time_multimodule(target_name='Isc', linear_fit=False, color_code=False, color_name='IR_BEV', interpol=True)
 # data1.data_ploter_with_time_multimodule(target_name='IR_BEV', linear_fit=True)
 # data1.data_ploter_with_time_multimodule(target_name='MT', linear_fit=True)
-# data1.data_ploter_with_time_multimodule(target_name='Voc', linear_fit=True, color_code=True, color_name='IR_BEV', interpol=False)
+data1.data_ploter_with_time_multimodule(target_name='Voc', linear_fit=True, color_code=True, color_name='IR_BEV', interpol=False)
 # data1.data_ploter_with_time_multimodule(target_name='Pm', linear_fit=True, color_code=True, color_name='IR_BEV', interpol=False)
 # data1.data_ploter_with_time_multimodule(target_name='FF', linear_fit=True, color_code=True, color_name='IR_BEV', interpol=False)
 # data1.data_ploter_with_time_multimodule(target_name='eff', linear_fit=True, color_code=True, color_name='IR_BEV', interpol=False) # the efficinecy is no known because we don't know hte module area
