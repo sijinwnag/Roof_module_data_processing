@@ -63,7 +63,7 @@ class module_data_processor:
     """
 
 
-    def __init__(self, path, starting_day, ending_day, starting_time, ending_time, iqr_width=10, resample_name='IR_BEV', module_Area = 2.578716):
+    def __init__(self, path, starting_day, ending_day, starting_time, ending_time, iqr_width=1.5, resample_name='IR_BEV', module_Area = 2.578716):
         """
         1. Write the path, starting date and ending date into the object.
         2. Input:
@@ -571,14 +571,16 @@ class module_data_processor:
                     plt.plot(xplot, yplot, '--k')
                     # print('The slope is ' + str(round(coef[0], 4)) + '/day' + ' for module ' + str(self.module_num_list[counter-1]))
                     # add the equation onto the plot
-                    plt.text(0.1, 0.9, 'y = ' + str(round(coef[0], 4)) + '/day' + ' + ' + str(round(coef[1], 2)), fontsize=12, transform=plt.gca().transAxes)
+                    # plt.text(0.1, 0.9, 'y = ' + str(round(coef[0], 4)) + ' * days' + ' + ' + str(round(coef[1], 2)), fontsize=12, transform=plt.gca().transAxes)
+                    plt.title('y = ' + str(round(coef[0], 4)) + ' * days' + ' + ' + str(round(coef[1], 2)), fontsize=12)
 
         # look up the name from dictionary:
         target_name = self.column_name_dict[target_name]
         plt.xlabel('Time')
         plt.ylabel(target_name)
         # # print('the above works')
-        plt.title(' Between '+  str(self.starting_datetime) + ' and ' + str(self.ending_datetime))
+        if linear_fit == False:
+            plt.title(' Between '+  str(self.starting_datetime) + ' and ' + str(self.ending_datetime))
         plt.gcf().autofmt_xdate()
         if color_code == False:
             plt.legend(loc='lower left')
@@ -620,6 +622,7 @@ class module_data_processor:
                     # yplot = [poly1d_fn(x)[0], poly1d_fn(x)[-1]]
                     plt.plot(xplot, yplot, '--k')
                     # print('The slope is ' + str(round(coef[0], 4)) + ' for module ' + str(self.module_num_list[counter-1]))
+                    plt.text(0.1, 0.9, 'y = ' + str(round(coef[0], 4)) + ' x' + ' + ' + str(round(coef[1], 2)), fontsize=12, transform=plt.gca().transAxes)
             # # select the x and y column names:
             # x = pd_module[x_name]
             # # select the y axis data:
@@ -632,7 +635,8 @@ class module_data_processor:
         plt.ylabel(y_name)
         plt.title(' Between '+  str(self.starting_datetime) + ' and ' + str(self.ending_datetime))
         plt.gcf().autofmt_xdate()
-        plt.legend()
+        if color_code == False:
+            plt.legend(loc='lower left')
         plt.show()
 
 
@@ -989,7 +993,7 @@ class module_data_processor:
         # print(interpolate_ind)
 
         return x_interpolate, y_interpolate, interpolate_ind
-        
+
 
 # %% Appendix A: this is the code to open all files in a folder
 

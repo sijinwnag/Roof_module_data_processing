@@ -72,7 +72,7 @@ percentile = 90
 # T_central +- dT
 # the unit is degree C
 T_central=45
-dT = 1
+dT = 100
 
 # Ir_central is a float representing the centre value of the temperature 
 # we want to represent, the selected data should be within the range of 
@@ -159,14 +159,14 @@ print('The mean of FF is ' + str(data1.module_df_sampled[0]['FF'].mean()))
 # data1.data_ploter_with_time_multimodule(target_name='Isc', linear_fit=False, color_code=False, color_name='IR_BEV', interpol=True)
 # data1.data_ploter_with_time_multimodule(target_name='IR_BEV', linear_fit=True)
 # data1.data_ploter_with_time_multimodule(target_name='MT', linear_fit=True)
-data1.data_ploter_with_time_multimodule(target_name='Voc', linear_fit=True, color_code=True, color_name='IR_BEV', interpol=False)
+# data1.data_ploter_with_time_multimodule(target_name='Voc', linear_fit=True, color_code=True, color_name='IR_BEV', interpol=False)
 # data1.data_ploter_with_time_multimodule(target_name='Pm', linear_fit=True, color_code=True, color_name='IR_BEV', interpol=False)
 # data1.data_ploter_with_time_multimodule(target_name='FF', linear_fit=True, color_code=True, color_name='IR_BEV', interpol=False)
 # data1.data_ploter_with_time_multimodule(target_name='eff', linear_fit=True, color_code=True, color_name='IR_BEV', interpol=False) # the efficinecy is no known because we don't know hte module area
 
 # plot the parameter with another parameter
-# data1.data_parameter_plot_multimodule(x_name='MT', y_name='Isc', linear_fit=True, color_code=True)
-# data1.data_parameter_plot_multimodule(x_name='MT', y_name='Voc', linear_fit=True, color_code=True)
-# data1.data_parameter_plot_multimodule(x_name='MT', y_name='Pm', linear_fit=True)
+data1.data_parameter_plot_multimodule(x_name='MT', y_name='Isc', linear_fit=True, color_code=True)
+data1.data_parameter_plot_multimodule(x_name='MT', y_name='Voc', linear_fit=True, color_code=True)
+data1.data_parameter_plot_multimodule(x_name='MT', y_name='eff', linear_fit=True, color_code=True)
 # data1.data_parameter_plot_multimodule(x_name='MT', y_name='IR_BEV', linear_fit=True)
 # data1.data_parameter_plot_multimodule(x_name='IR_BEV', y_name='Isc', linear_fit=False)
