@@ -13,7 +13,7 @@ date_selctor: select which days to read based on the user input.
 
 file_path_locator: for each input day, find which file include this day and ouput its path.
 
-zero_remover: remove the zeros.
+data_extractor: remove the zeros.
 
 module_selector: select which data to include based on the user input modules numbers.
 
@@ -162,7 +162,6 @@ class module_data_processor:
         # create the connection
         # msa_drivers = [x for x in pyodbc.drivers() if 'ACCESS' in x.upper()]
         con_string = r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=' + str(path) + ';'
-        print(con_string)
         conn = pyodbc.connect(con_string)
 
         # Create the cursor object to read how many table we got:
@@ -419,7 +418,7 @@ class module_data_processor:
         return path
 
 
-    def zero_remover(self, removezero=True):
+    def data_extractor(self, removezero=True):
         """
         This function takes the df_days and remove the zero outliers
         removezero: a boolean input, if true, remove the zeros, otherwise just read the data.
@@ -484,6 +483,10 @@ class module_data_processor:
         3. color_code: a boolean input, if true, the scatter plot will be color coded based on the parameter given by color_name (the color code feature is only usable when there is only one module)
         4. interpol: a boolean input, if true, the scatter plot will interpolate the empty values with lienar fit.
         '''
+        # the interpolation does not work without resampling, so check whether resampline period is alid first
+        if (self.resample_T != 'hour') and (self.resample_T != 'day'):
+            interpol = False
+
         fig, ax = plt.subplots()
         counter = 0
         # define a color for each module
@@ -504,7 +507,7 @@ class module_data_processor:
                 # select the x and y column names:
                 # y = pd_module[target_name]
                 # x = pd_module['datetime']
-                line1 = ax.scatter(x, y, label='Module ' + str(self.module_num_list[counter-1]) + ' (' + str(year) + ')', s=10, color=color_list[counter-1])
+                line1 = ax.scatter(x, y, label='Module ' + str(self.module_num_list[counter-1]) + ' (' + str(year) + ')', s=10, color=color_list[counter-1], alpha=0.5)
                 linelist.append(line1)
                 # for plotting
                 # if the time ranges for larger than a month, don't include time in x axis
