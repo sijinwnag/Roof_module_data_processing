@@ -160,8 +160,9 @@ class module_data_processor:
         # path = self.path
 
         # create the connection
-        msa_drivers = [x for x in pyodbc.drivers() if 'ACCESS' in x.upper()]
+        # msa_drivers = [x for x in pyodbc.drivers() if 'ACCESS' in x.upper()]
         con_string = r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=' + str(path) + ';'
+        print(con_string)
         conn = pyodbc.connect(con_string)
 
         # Create the cursor object to read how many table we got:
