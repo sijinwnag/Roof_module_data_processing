@@ -135,6 +135,20 @@ class module_data_processor:
         'FF':'Fill factor (%)',
         'eff': 'Efficiency (%)'}
 
+        self.param_name_dict = {
+            'Absolute humidity %': 'AH',
+            'Ambient temperature (C)': 'AT',
+            'Module temperature (C)': 'MT',
+            'Irradiance (W/m2)': 'IR_BEV',
+            'Voc(V)': 'Voc',
+            'Isc(A)': 'Isc',
+            'Maximum power voltage (V)': 'Vm',
+            'Maximum power current (A)': 'Im',
+            'Maximum power (W)': 'Pm',
+            'Fill factor (%)': 'FF',
+            'Efficiency (%)': 'eff'
+        }
+
         # define a list of colour correspond to each module: blue, green red, magenta, and yellow.
         self.colour_list = ['b', 'g', 'r', 'c', 'm', 'y']
 
@@ -621,12 +635,13 @@ class module_data_processor:
                     coef = np.polyfit(x,y,1)
                     poly1d_fn = np.poly1d(coef)
                     xplot = x
-                    yplot = poly1d_fn(x)
-                    # xplot = [x.iloc[0], x.iloc[-1]]
-                    # yplot = [poly1d_fn(x)[0], poly1d_fn(x)[-1]]
+                    # yplot = poly1d_fn(x)
+                    # only choose two points of line
+                    xplot = [xplot.min(), xplot.max()]
+                    yplot = poly1d_fn(xplot)
                     plt.plot(xplot, yplot, '--k')
                     # print('The slope is ' + str(round(coef[0], 4)) + ' for module ' + str(self.module_num_list[counter-1]))
-                    plt.text(0.1, 0.9, 'y = ' + str(round(coef[0], 4)) + ' x' + ' + ' + str(round(coef[1], 2)), fontsize=12, transform=plt.gca().transAxes)
+                    plt.text(0.1, 0.9, 'y = ' + str(round(coef[0], 4)) + ' x' + ' + ' + str(round(coef[1], 2)), fontsize=12, transform=plt.gca().transAxes, bbox=dict(facecolor='lightgray', edgecolor='black', pad=5))
             # # select the x and y column names:
             # x = pd_module[x_name]
             # # select the y axis data:
