@@ -161,6 +161,9 @@ class module_data_processor:
         # define the module area
         self.module_area = module_Area
 
+        # set the default: we don't fill the night data with zero
+        self.interpolate_night = False
+
 
     def table_name_reader(self, path):
         """
@@ -541,24 +544,18 @@ class module_data_processor:
 
                 if interpol == True:
                     if self.resample_T == 'hour' or 'day' or 'month':
-                        # calcualte the interpolated value for x_interpolate and y_interpolate.
-                        # # print('calculating interpolation')
                         x_interpolate, y_interpolate, interpolate_ind = self.interpolator(x, y)
-                        # print(interpolate_ind)
-                        # x_interpolate = pd.DataFrame(x_interpolate, index = x_interpolate)
-                        # y_interpolate = pd.DataFrame(y_interpolate, index = x_interpolate)
-                        # datetime_int = pd.DataFrame(datetime_int, index = datetime_int)
+
+                        # make sure the y values are nonzero
                         x_interpolate = np.array(x_interpolate)
                         y_interpolate = np.array(y_interpolate)
+
                         # plot the interpolated values only
-                        y_interpolate = y_interpolate[interpolate_ind]
-                        x_interpolate = x_interpolate[interpolate_ind]
+                        # y_interpolate = y_interpolate[interpolate_ind]
+                        # x_interpolate = x_interpolate[interpolate_ind]
+                        
                         # plot the interpolated values.
-                        # # print('ploting interplated values')
-                        # plt.scatter(x_interpolate, y_interpolate, s=10, color=color_list[counter-1], facecolors='none', label='Module ' + str(self.module_num_list[counter-1]) + ' (' + str(year) + ')' + ' (Interpolation)')
-                        plt.scatter(x_interpolate, y_interpolate, s=10, color=color_list[counter-1], facecolors='none')
-                        # # print(x_interpolate)
-                        # # print(y_interpolate)
+                        plt.scatter(x_interpolate, y_interpolate, s=10, edgecolors=color_list[counter-1], facecolors='none')
 
 
                 # add the linear plot: both the line and the equation.
@@ -591,7 +588,9 @@ class module_data_processor:
                     # add the equation onto the plot
                     # plt.text(0.1, 0.9, 'y = ' + str(round(coef[0], 4)) + ' * days' + ' + ' + str(round(coef[1], 2)), fontsize=12, transform=plt.gca().transAxes)
                     plt.title('y = ' + str(round(coef[0], 4)) + ' * days' + ' + ' + str(round(coef[1], 2)), fontsize=12)
-
+        
+        if interpol == True:
+            plt.scatter(x_interpolate[0], y_interpolate[0], s=10, color='black', facecolors='none', label='Interpolated data')
         # look up the name from dictionary:
         target_name = self.column_name_dict[target_name]
         plt.xlabel('Time')
@@ -687,24 +686,30 @@ class module_data_processor:
             df_nonzero = df_nonzero.fillna(0)
 
         elif sample_length == 'day':
-             # compute the quantile value for selected parameter
-            quantile_values = df_nonzero.resample('D', on='datetime').quantile(q=select, interpolation='nearest')[self.resample_name]
-            # define the headings
-            quantile_values = pd.DataFrame(quantile_values, columns=[str(self.resample_name)])
+            # # compute the quantile value for selected parameter
+            # quantile_values = df_nonzero.resample('D', on='datetime').quantile(q=select, interpolation='nearest')[self.resample_name]
+            # # define the headings
+            # quantile_values = pd.DataFrame(quantile_values, columns=[str(self.resample_name)])
 
-            # select the rows where the selected column is equal to the quantile
-            df_nonzero = df_nonzero.loc[np.in1d(np.array(df_nonzero[self.resample_name]), np.array(quantile_values[self.resample_name]))]
+            # # select the rows where the selected column is equal to the quantile
+            # df_nonzero = df_nonzero.loc[np.in1d(np.array(df_nonzero[self.resample_name]), np.array(quantile_values[self.resample_name]))]
 
-            # resample again to ensure the frequency
-            df_nonzero = df_nonzero.resample('D', on='datetime').first()
+            # # resample again to ensure the frequency
+            # df_nonzero = df_nonzero.resample('D', on='datetime').first()
 
-            # df_nonzero = df_nonzero.resample('60min', on='datetime').quantile(q=select)
-            df_nonzero['datetime'] = df_nonzero.index
-            df_nonzero = df_nonzero.fillna(0)
+            # # df_nonzero = df_nonzero.resample('60min', on='datetime').quantile(q=select)
+            # df_nonzero['datetime'] = df_nonzero.index
+            # df_nonzero = df_nonzero.fillna(0)
+
+            quantile_values = df_nonzero.resample('D', on='datetime').quantile(q = select)
+
+            df_nonzero = quantile_values
 
         elif sample_length == 'month':
- # compute the quantile value for selected parameter
+
+            # compute the quantile value for selected parameter
             quantile_values = df_nonzero.resample('M', on='datetime').quantile(q=select, interpolation='nearest')[self.resample_name]
+
             # define the headings
             quantile_values = pd.DataFrame(quantile_values, columns=[str(self.resample_name)])
 
@@ -717,6 +722,7 @@ class module_data_processor:
             # df_nonzero = df_nonzero.resample('60min', on='datetime').quantile(q=select)
             df_nonzero['datetime'] = df_nonzero.index
             df_nonzero = df_nonzero.fillna(0)
+
         else:
             df_nonzero=df
 
@@ -801,7 +807,7 @@ class module_data_processor:
         filter = (df[column] >= q1 - whisker_width*iqr) & (df[column] <= q3 + whisker_width*iqr)
         # # print('filtered')
         return df.loc[filter]
-    
+
 
     def bin_selector(self, param_name, centre_value=40, rangevalue=1):
         '''
@@ -962,10 +968,12 @@ class module_data_processor:
         1. check if there is data missing.
         2. if there is data missing, interpolate the missing data with lienar fit.
         3. output:
-            x_interpolate, y_interpolate: the series after interpolation
-            datetime_int: a list of datetime which was interpolated
+            x_interpolate, y_interpolate: the series after interpolation, they include both original data and interpolated data
+            interpolate_index: a list of interpolated index
+            interpolate_night: a boolean index which if true, will fill the night time data with zero, otherwise leave it empty
         '''
-
+        # read whether interpolate night data from the object
+        interpolate_night = self.interpolate_night
         # find the time step based on the resampling period
         sampleT = self.resample_T
         if sampleT == 'hour' or sampleT == 'hours':
@@ -980,6 +988,10 @@ class module_data_processor:
             dt = datetime.timedelta(seconds=9)
 
         # use a while loop to start with the first time step
+        # remove the inf and Nan
+        # mask = x.isin([np.nan, np.inf, -np.inf]).any(axis=0)
+        # x = x[mask]
+
         checking_x = x.iloc[0]
         x_interpolate = []
         y_interpolate = []
@@ -988,33 +1000,57 @@ class module_data_processor:
         running_ind = 0
         while checking_x <= x.iloc[-1]:
             # while the checking_x is within the time range, see if is checking_x within the x series
-            if checking_x in x:
-                # empty_ = False
-                x_interpolate.append(checking_x)
-                y_interpolate.append(y[checking_x])
-            elif (checking_x.hour>=5 and checking_x.hour<=21) or sampleT == 'day' or sampleT == 'month':
-                # interpolate if it is day time and the data is empty
-                x_interpolate.append(checking_x)
-                y_interpolate.append(float('NAN'))
-                # datetime_int.append(checking_x)
-                interpolate_ind.append(running_ind)
+            if sampleT == 'hour':
+                if checking_x in x:
+                    # empty_ = False
+                    x_interpolate.append(checking_x)
+                    y_interpolate.append(y[checking_x])
+                elif (checking_x.hour>=5 and checking_x.hour<=21) and (sampleT == 'day' or sampleT == 'month' or sampleT == 'hour'):
+                    # interpolate if it is day time and the data is empty, and we have a stable period
+                    x_interpolate.append(checking_x)
+                    y_interpolate.append(float('NAN'))
+                    # datetime_int.append(checking_x)
+                    interpolate_ind.append(running_ind)
+                elif (interpolate_night == True) and (sampleT == 'day' or sampleT == 'month' or sampleT == 'hour'):
+                    # if the checking datetime is during night time, fill with zeros
+                    x_interpolate.append(checking_x)
+                    y_interpolate.append(float(0))
+                    interpolate_ind.append(running_ind)
+                # else:
+                    # this is the case when we don't want to interpolate the night time data, and the data are night emtpy time data just leave it empty
+                    # x_interpolate.append(checking_x)
+                    # y_interpolate.append(y[checking_x])
             else:
-                # if the checking datetime is during night time, fill with zeros
-                x_interpolate.append(checking_x)
-                y_interpolate.append(float(0))
-                interpolate_ind.append(running_ind)
+                if min(abs(x - checking_x)) <= dt:
+                    # empty_ = False
+                    x_interpolate.append(checking_x)
+                    # input the nearest value
+                    # Find the nearest timestamp in the Series
+                    nearest_timestamp = (x - checking_x).astype('timedelta64[ns]').abs().idxmin()
+                    # Get the value at the nearest timestamp
+                    nearest_value = y.loc[nearest_timestamp]
+                    y_interpolate.append(nearest_value)
+                # if checking_x in x:
+                #     x_interpolate.append(checking_x)
+                #     y_interpolate.append(y[checking_x])
+
+                elif (sampleT == 'day' or sampleT == 'month'):
+                    # interpolate if it is day time and the data is empty, and we have a stable period.
+                    x_interpolate.append(checking_x)
+                    y_interpolate.append(np.nan)
+                    # datetime_int.append(checking_x)
+                    interpolate_ind.append(running_ind)
+
             # goes to the next time step
             checking_x = checking_x + dt
             running_ind += 1
-
         # apply interpolation to y_interpolate
         y_interpolate = pd.DataFrame(y_interpolate).interpolate()
-        # print(interpolate_ind)
-
+        # print(np.shape(y_interpolate))
         return x_interpolate, y_interpolate, interpolate_ind
 
 
-# %% Appendix A: this is the code to open all files in a folder
+# %% Appendix A: this is the code to open all files in a folder.
 
 # from os import walk
 
