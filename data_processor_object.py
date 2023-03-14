@@ -563,6 +563,7 @@ class module_data_processor:
                 # for dx in x:
                     # x_fit.append(datetime.datetime.fromtimestamp(dx) - datetime.date(self.years_available[0],1,1))
                 if linear_fit == True:
+                    # convert the datetime into a number
                     x2 = []
                     for dx in x:
                         total = int(dx.strftime('%S'))
