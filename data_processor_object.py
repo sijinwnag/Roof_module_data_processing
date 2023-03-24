@@ -605,7 +605,7 @@ class module_data_processor:
         plt.show()
 
 
-    def data_parameter_plot_multimodule(self, x_name, y_name, linear_fit=False, color_code=False, color_name='IR_BEV'):
+    def data_parameter_plot_multimodule(self, x_name, y_name, linear_fit=False, color_code=False, color_name='IR_BEV', module_title=False):
         '''
         This function will plot the parmeter with parameter but plot multiple module value on the same graph.
 
@@ -652,7 +652,10 @@ class module_data_processor:
         y_name = self.column_name_dict[y_name]
         plt.xlabel(x_name)
         plt.ylabel(y_name)
-        plt.title(' Between '+  str(self.starting_datetime) + ' and ' + str(self.ending_datetime))
+        if module_title:
+            plt.title('Module ' + str(self.module_num_list))
+        else:
+            plt.title(' Between '+  str(self.starting_datetime) + ' and ' + str(self.ending_datetime))
         plt.gcf().autofmt_xdate()
         if color_code == False:
             plt.legend(loc='lower left')
