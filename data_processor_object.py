@@ -1,50 +1,3 @@
-'''
-Object functions:
-
-__init__: store the input into the object.
-
-table_name_reader: read the table name of each given microsoft access file.
-
-file_date_reader: read the available dates of all given microsoft access file.
-
-data_reader_day: read all the access file day by day and store into a pd dataframe.
-
-date_selctor: select which days to read based on the user input.
-
-file_path_locator: for each input day, find which file include this day and ouput its path.
-
-data_extractor: remove the zeros.
-
-module_selector: select which data to include based on the user input modules numbers.
-
-data_ploter_with_time_multimodule: plot the user-defined parameter with time.
-
-data_parameter_plot_multimodule: plot one parameter with another.
-
-data_resampler: resample the data based on the user defined period.
-
-multi_module_resampler: resample the data with more than one module.
-
-path_selector: locate the path of a given date.
-
-subset_by_iqr: remove the outliers based on the defined quantile number.
-
-bin_selector: filter the data within the given parameter range.
-
-temperature_correction: correct the data based on the temperature coefficients.
-
-irradiance_correction: correct the data based on the irradiance.
-
-time_to_int: a function that convert a datetime to an interger.
-
-zero_removal2: another function to remove the zeros.
-
-hist_visual: a function to visualize the data by plotting histogram.
-
-interpolator: a function to interpolate the empty data.
-
-'''
-
 # %%-- import the libraries
 import numpy as np
 import matplotlib.pyplot as plt
@@ -53,6 +6,12 @@ import pyodbc
 # from sqlalchemy import create_engine
 import datetime
 import matplotlib.dates as mdates
+import pickle
+import os
+import glob
+from PIL import Image
+import matplotlib.image as mpimg
+import cv2
 # from os import walk
 # %%-
 
@@ -61,7 +20,6 @@ class module_data_processor:
     """
     This is an object that reads and process the module data from an access databse file.
     """
-
 
     def __init__(self, path, starting_day, ending_day, starting_time, ending_time, iqr_width=1.5, resample_name='IR_BEV', module_Area = 2.578716):
         """
@@ -76,27 +34,15 @@ class module_data_processor:
             resample_name: a string showing which colume to resample on when resampling
             module_Area: a number corresponding to the area of each module.
         """
-
-        # self.pathlist = pathlist
-        # self.starting_time = starting_time
-        # self.ending_time = ending_time
-        # the path is a list of string correspond to the path of each files.
         # data for 2022.
         self.path = path
 
-        # add more paths into the path list
-
-        # mypath=(r'C:\Users\sijin wang\Desktop\research\RA\Module_data_project\data')
-
-        # for (filenames) in walk(mypath):
-
-        #     self.path.extend(filenames)
-
-        #     break
 
         # self.path = path
         self.starting_day = starting_day
         self.ending_day = ending_day
+        self.starting_time = starting_time
+        self.ending_time = ending_time
 
         # convert the input to datetime.
         year_st, month_st, day_st = starting_day.split('_')
@@ -435,10 +381,11 @@ class module_data_processor:
         return path
 
 
-    def data_extractor(self, removezero=True):
+    def data_extractor(self, removezero=True, store_df=False):
         """
         This function takes the df_days and remove the zero outliers
         removezero: a boolean input, if true, remove the zeros, otherwise just read the data.
+        store_df: a boolean input, if true, it will store the generated df as a pickle file
         """
         # run the code to extract the dates.
         df = self.date_selector()
@@ -462,7 +409,19 @@ class module_data_processor:
         # store the data in the object
         # # print(df_nonzero)
         self.df_nonzero = df_nonzero
-
+        if store_df == True:
+            # the name of the file contains: start and ending datetime
+            file_name = str(self.starting_day) + ' ' + str(self.ending_day)
+            # delete the previous pickle file
+            current_dir = os.getcwd()
+            for files in os.listdir(current_dir):
+                if files.endswith('.pkl'):
+                    file_path = os.path.join(current_dir, files)
+                    os.remove(file_path)
+            # store the df_nonzero as a pickle file
+            with open(str(file_name) + '.pkl', 'wb') as f:
+                pickle.dump(df_nonzero, f)
+                
 
     def module_selector(self, module_num_list = [1, 2, 3]):
         """
@@ -491,7 +450,7 @@ class module_data_processor:
         self.module_num_list = module_num_list
 
 
-    def data_ploter_with_time_multimodule(self, target_name, linear_fit=False, color_code=False, color_name='IR_BEV', interpol=False):
+    def data_ploter_with_time_multimodule(self, target_name, linear_fit=False, color_code=False, color_name='IR_BEV', interpol=False, transparency=0.5, export_figure=False, module_title=False):
         '''
         This function will plot the parmeter with time but plot multiple module value on the same graph.
         input:
@@ -524,7 +483,7 @@ class module_data_processor:
                 # select the x and y column names:
                 # y = pd_module[target_name]
                 # x = pd_module['datetime']
-                line1 = ax.scatter(x, y, label='Module ' + str(self.module_num_list[counter-1]) + ' (' + str(year) + ')', s=10, color=color_list[counter-1], alpha=0.5)
+                line1 = ax.scatter(x, y, label='Module ' + str(self.module_num_list[counter-1]) + ' (' + str(year) + ')', s=10, color=color_list[counter-1], alpha=transparency)
                 linelist.append(line1)
                 # for plotting
                 # if the time ranges for larger than a month, don't include time in x axis
@@ -539,7 +498,7 @@ class module_data_processor:
 
                 if color_code == True:
                     # add the colour code as a third colume:
-                    plt.scatter(x, y, label='Module ' + str(self.module_num_list[counter-1]) + ' (' + str(year) + ')', c=pd_module[pd_module['datetime'].dt.year == year][color_name], s=10, cmap='jet')
+                    plt.scatter(x, y, label='Module ' + str(self.module_num_list[counter-1]) + ' (' + str(year) + ')', c=pd_module[pd_module['datetime'].dt.year == year][color_name], s=10, cmap='jet', alpha=transparency)
                     plt.colorbar(label=self.column_name_dict[color_name])
 
                 if interpol == True:
@@ -549,10 +508,6 @@ class module_data_processor:
                         # make sure the y values are nonzero
                         x_interpolate = np.array(x_interpolate)
                         y_interpolate = np.array(y_interpolate)
-
-                        # plot the interpolated values only
-                        # y_interpolate = y_interpolate[interpolate_ind]
-                        # x_interpolate = x_interpolate[interpolate_ind]
                         
                         # plot the interpolated values.
                         plt.scatter(x_interpolate, y_interpolate, s=10, edgecolors=color_list[counter-1], facecolors='none')
@@ -587,8 +542,8 @@ class module_data_processor:
                     plt.plot(xplot, yplot, '--k')
                     # print('The slope is ' + str(round(coef[0], 4)) + '/day' + ' for module ' + str(self.module_num_list[counter-1]))
                     # add the equation onto the plot
-                    # plt.text(0.1, 0.9, 'y = ' + str(round(coef[0], 4)) + ' * days' + ' + ' + str(round(coef[1], 2)), fontsize=12, transform=plt.gca().transAxes)
-                    plt.title('y = ' + str(round(coef[0], 4)) + ' * days' + ' + ' + str(round(coef[1], 2)), fontsize=12)
+                    plt.text(0.1, 0.9, 'y = ' + str(round(coef[0], 4)) + ' x' + ' + ' + str(round(coef[1], 2)), fontsize=12, transform=plt.gca().transAxes, bbox=dict(facecolor='lightgray', edgecolor='black', pad=5))
+                    # plt.title('y = ' + str(round(coef[0], 4)) + ' * days' + ' + ' + str(round(coef[1], 2)), fontsize=12)
         
         if interpol == True:
             plt.scatter(x_interpolate[0], y_interpolate[0], s=10, color='black', facecolors='none', label='Interpolated data')
@@ -597,23 +552,30 @@ class module_data_processor:
         plt.xlabel('Time')
         plt.ylabel(target_name)
         # # print('the above works')
-        if linear_fit == False:
+        if module_title:
+            plt.title('Module ' + str(self.module_num_list))
+        else:
             plt.title(' Between '+  str(self.starting_datetime) + ' and ' + str(self.ending_datetime))
         plt.gcf().autofmt_xdate()
         if color_code == False:
             plt.legend(loc='lower left')
+        # export the figure if asked
+        if export_figure:
+            plt.savefig(str('Module ' + str(self.module_num_list)) + '.png')
         plt.show()
 
 
-    def data_parameter_plot_multimodule(self, x_name, y_name, linear_fit=False, color_code=False, color_name='IR_BEV', module_title=False):
+    def data_parameter_plot_multimodule(self, x_name, y_name, linear_fit=False, color_code=False, color_name='IR_BEV', module_title=False, transparency=0.5, export_figure=False):
         '''
         This function will plot the parmeter with parameter but plot multiple module value on the same graph.
 
         1. target_name: the name of hte parameter to plot, which is correspond to the colume name given in access file
         2. linear_fit: a boolean input, if true, it will plot a linear fit and display the gradient.
         3. color_code: a boolean input, it true, the scatter plot will be color coded based on the parameter given by color_name (the color code feature is only usable when there is only one module)
+        4. export_figure: a boolean input, if true, it will export the figure.
+        5. transparency: a number input, ranging from 0 to 1 (0 means totally transparent)
         '''
-        plt.figure()
+        plt.figure(facecolor='white')
         counter = 0
         for module in self.module_df_sampled:
             counter = counter + 1
@@ -625,11 +587,11 @@ class module_data_processor:
             for year in self.years_available:
                 y = pd_module[pd_module['datetime'].dt.year == year][y_name]
                 x = pd_module[pd_module['datetime'].dt.year == year][x_name]
-                plt.scatter(x, y, label='Module ' + str(self.module_num_list[counter-1]) + ' (' + str(year) + ')', s=10)
+                plt.scatter(x, y, label='Module ' + str(self.module_num_list[counter-1]) + ' (' + str(year) + ')', s=10, alpha=transparency)
                 # add the color code feature for the 3rd dimension
                 if color_code == True:
                     # add the colour code as a third colume:
-                    plt.scatter(x, y, label='Module ' + str(self.module_num_list[counter-1]) + ' (' + str(year) + ')', c=pd_module[pd_module['datetime'].dt.year == year][color_name], s=10, cmap='jet')
+                    plt.scatter(x, y, label='Module ' + str(self.module_num_list[counter-1]) + ' (' + str(year) + ')', c=pd_module[pd_module['datetime'].dt.year == year][color_name], s=10, cmap='jet', alpha=transparency)
                     plt.colorbar(label=self.column_name_dict[color_name])
                 if linear_fit == True:
                     coef = np.polyfit(x,y,1)
@@ -659,6 +621,9 @@ class module_data_processor:
         plt.gcf().autofmt_xdate()
         if color_code == False:
             plt.legend(loc='lower left')
+        # export the figure if asked
+        if export_figure:
+            plt.savefig(str('Module ' + str(self.module_num_list)) + '.png')
         plt.show()
 
 
@@ -726,6 +691,11 @@ class module_data_processor:
             # df_nonzero = df_nonzero.resample('60min', on='datetime').quantile(q=select)
             df_nonzero['datetime'] = df_nonzero.index
             df_nonzero = df_nonzero.fillna(0)
+        
+        elif sample_length == 'minute':
+
+            quantile_values = df_nonzero.resample('T', on='datetime').quantile(q=select)
+            df_nonzero = quantile_values
 
         else:
             df_nonzero=df
@@ -789,7 +759,7 @@ class module_data_processor:
         return path
 
 
-    def subset_by_iqr(self, df, column):
+    def subset_by_iqr(self, df, column, Q1_def=0.3, Q2_def=0.6):
         """Remove outliers from a dataframe by column, including optional
            whiskers, removing rows for which the column value are
            less than Q1-1.5IQR or greater than Q3+1.5IQR.
@@ -804,8 +774,8 @@ class module_data_processor:
         # read the widker width from the object
         whisker_width = self.iqr_width
         # Calculate Q1, Q2 and IQR
-        q1 = df[column].quantile(0.25)
-        q3 = df[column].quantile(0.75)
+        q1 = df[column].quantile(Q1_def)
+        q3 = df[column].quantile(Q2_def)
         iqr = q3 - q1
         # Apply filter with respect to IQR, including optional whiskers
         filter = (df[column] >= q1 - whisker_width*iqr) & (df[column] <= q3 + whisker_width*iqr)
@@ -1054,6 +1024,208 @@ class module_data_processor:
         return x_interpolate, y_interpolate, interpolate_ind
 
 
+    def pickle_extractor(self):
+        '''
+        This function extracts the pickle files into pd dataframe if there is previous pickle files stored
+        if there is no existing pickle file, it will do the extraction by itself
+        '''
+        pickle_files = glob.glob("*.pkl")
+        if len(pickle_files) != 1:
+            print("Error: There is not exactly one pickle file in the folder, so run the extraction again")
+            # extract the data
+            self.data_extractor(removezero=True, store_df=True)
+        else:
+            pickle_file_name = os.path.basename(pickle_files[0])
+            print("Successfully found the pickle file, The pickle file name is:", pickle_file_name)
+            # extract the starting and ending date
+            starting_date, ending_date = pickle_file_name.split()
+            ending_date = ending_date.split('.')[0]
+            # if the date does match we just read the file from pickle
+            if starting_date == self.starting_day and ending_date == self.ending_day:
+                # read as pd dataframe
+                print('The stored pickle file matches the date requirement, so just read pd dataframe from pickle file')
+                self.df_nonzero = pd.read_pickle(pickle_file_name)
+            else:
+                # otherwise, rerun the extraction process
+                print('The stored pickle file does not match the date requirement, so run the data extraction')
+                self.data_extractor(removezero=True, store_df=True)
+
+    
+    def subplot_collector(self, delete_ori_im=True):
+        '''
+        This function collect the exported figures and create a subplot
+
+        input:
+            1. column_num: an integer input indicating the number of column to have in the subplot
+            2. hspace: the distance between rows
+            3. wspace: the distance between columns
+            4. delete_ori_im: a boolean input, if true, will delete all other image file in the current folder before exporting the subplot
+        '''
+
+        # Define directory path
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+
+        # Get list of PNG files in directory
+        png_files = [f for f in os.listdir(dir_path) if f.endswith('.png')]
+
+        # calculate the column number for the subplot
+        if len(png_files) == 2:
+            column_num = 2
+            num_rows = 1
+            hspace = -0.9
+            wspace = -0.3
+        elif len(png_files) == 3:
+            column_num = 3
+            num_rows = 1
+            hspace = -0.9
+            wspace = -0.3
+        elif len(png_files) == 4:
+            column_num = 2
+            num_rows = 2
+            hspace = -1.25
+            wspace = -1.3
+        elif len(png_files) == 5:
+            column_num = 3
+            num_rows = 2
+            hspace = -1.55
+            wspace = -0.3
+        else:
+            column_num = 3
+            num_rows = 2
+            hspace = -1.16
+            wspace = -0.3
+
+        # Create subplot with 2 columns and variable number of rows
+        fig, axes = plt.subplots(nrows=num_rows, ncols=column_num, figsize=(24, 24*num_rows))
+
+        # adjust the spacing
+        fig.subplots_adjust(hspace=hspace, wspace=wspace)
+
+        # Iterate over PNG files and plot each one on a separate axis
+        for i, png_file in enumerate(png_files):
+            row_idx = i // column_num
+            col_idx = i % column_num
+            if num_rows == 1:
+                ax = axes[col_idx]
+            else:
+                ax = axes[row_idx, col_idx]
+
+            ax.imshow(plt.imread(os.path.join(dir_path, png_file)))
+            ax.axis('off')
+
+        # for the 5 figure subplot, turn off the axis for the last plot and centre the last two images in the last row
+        if len(png_files) == 5:
+            axes[-1, -1].set_axis_off()
+
+        # Adjust spacing between subplots and save figure
+        fig.tight_layout()
+
+
+        # delete the other image files if asked
+        if delete_ori_im:
+            self.image_deleter()
+
+        # save the subplot
+        plt.savefig('subplot.png')
+
+
+    def image_deleter(self):
+        '''
+        This function delete all the image file in the current directory
+        '''
+        # Get the current directory path
+        dir_path = os.getcwd()
+
+        # Loop through all files in the directory
+        for file_name in os.listdir(dir_path):
+            # Check if the file is an image file (change the extension to the one you need)
+            if file_name.endswith('.png') or file_name.endswith('.jpg') or file_name.endswith('.jpeg'):
+                # Construct the full file path
+                file_path = os.path.join(dir_path, file_name)
+                # Delete the file
+                os.remove(file_path)
+
+
+    def five_image_crop(self, upper_percentage = 0.4, lower_percentage = 0.4, left_percentage = 0, right_percentage = 0, input_image = None):
+        '''
+        This function takes the subplot generated for five image and scrop and rescale the image
+        '''
+        if input_image == None:
+            # Find the png file in the current directory
+            file_path = glob.glob("*.png")[0]
+
+            # open the image
+            image = Image.open(file_path)
+        else:
+            image = input_image
+
+        # get the size of image
+        width, height = image.size
+
+        # calculate the cropping box
+        top = round(height * upper_percentage) # top third of impage
+        bottom = round(height * (1-lower_percentage)) # bottom thrid of image
+        left = round(width * left_percentage) # left edge of the image
+        right = round(width * (1-right_percentage)) # right edge of the image
+
+        # cropping
+        image  = image.crop((left, top, right, bottom))
+
+        # save the image
+        # image.save('subplot_cropped.png')
+
+        # show the image
+        # plt.figure(figsize=(100, 300))
+        # plt.axis('off')
+        # plt.imshow(image)
+        # plt.show()
+
+        return image
+
+
+    def five_image_subplot(self):
+        '''
+        Step 1: crop out the first line
+        Step 2: crop out the second line
+        Step 3: Put then together and adjust the last two image alginment
+        Step 4: show and save
+        '''
+
+        # crop out the upper half
+        upper_half = self.five_image_crop(upper_percentage=0.4, lower_percentage=0.495)
+        lower_half = self.five_image_crop(upper_percentage=0.502, lower_percentage=0.398)
+
+        # shift the image to the right by 1/2-1/3=1/6
+        lower_array = np.array(lower_half)
+        lower_width = np.shape(lower_array)[1]
+        shifted_lower_array = np.roll(lower_array, round(lower_width/6), axis=1)
+
+        # convert the array back to image
+        shifted_lower = Image.fromarray(shifted_lower_array)
+
+        # display the shifted image
+        # plt.figure(figsize=(100, 300))
+        # plt.axis('off')
+        # plt.imshow(shifted_lower)
+        # plt.show()
+
+        # merge the upper half with the shifted lower half
+        upper_array = np.array(upper_half)
+        merged_array = np.concatenate([upper_array, shifted_lower], axis=0)
+
+        # convert the array back to image
+        merged_image = Image.fromarray(merged_array)
+
+        # display the merged image
+        plt.figure(figsize=(100, 300))
+        plt.axis('off')
+        plt.imshow(merged_image)
+        plt.show()
+
+        # export the merged image
+        merged_image.save('five_image_subplot.png')
+
+
 # %% Appendix A: this is the code to open all files in a folder.
 
 # from os import walk
@@ -1095,4 +1267,49 @@ class module_data_processor:
         # plt.gcf().autofmt_xdate()
         plt.show()
 
+
+    def crop(self, filename):
+        #Read the image
+        img = cv2.imread(filename)
+        #Convert to grayscale
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        #Separate the background from the foreground
+        bit = cv2.bitwise_not(gray)
+        #Apply adaptive mean thresholding
+        amtImage = cv2.adaptiveThreshold(bit, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 35, 15)
+        #Apply erosion to fill the gaps
+        kernel = np.ones((15,15),np.uint8)
+        erosion = cv2.erode(amtImage,kernel,iterations = 2)
+        #Take the height and width of the image
+        (height, width) = img.shape[0:2]
+        #Ignore the limits/extremities of the document (sometimes are black, so they distract the algorithm)
+        image = erosion[50:height - 50, 50: width - 50]
+        (nheight, nwidth) = image.shape[0:2]
+        #Create a list to save the indexes of lines containing more than 20% of black.
+        index = []
+        for x in range (0, nheight):
+            line = []
+                
+            for y in range(0, nwidth):
+                line2 = []
+                if (image[x, y] < 150):
+                    line.append(image[x, y])
+            if (len(line) / nwidth > 0.2):    
+                index.append(x)
+        #Create a list to save the indexes of columns containing more than 15% of black.
+        index2 = []
+        for a in range(0, nwidth):
+            line2 = []
+            for b in range(0, nheight):
+                if image[b, a] < 150:
+                    line2.append(image[b, a])
+            if (len(line2) / nheight > 0.15):
+                index2.append(a)
+
+        #Crop the original image according to the max and min of black lines and columns.
+        img = img[min(index):max(index) + min(250, (height - max(index))* 10 // 11) , max(0, min(index2)): max(index2) + min(250, (width - max(index2)) * 10 // 11)]
+        #Save the image
+        cv2.imwrite('res_' + filename, img)
+        # display the image
+        img.show
 # end of the function
